@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
+  Image,
   ImageBackground,
   Platform,
   StyleSheet,
@@ -223,9 +224,9 @@ export default function LobbyScreen() {
             { opacity: titleAnim, transform: [{ translateY: titleAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] },
           ]}
         >
-          <View style={styles.clinicBadge}>
-            <Ionicons name="medical" size={16} color="#FF7A5C" />
-            <Text style={styles.clinicTitle}>Mythic Wellness</Text>
+          <View style={styles.dutyInfo}>
+            <Text style={styles.dutyLabel}>On Duty:</Text>
+            <Text style={styles.dutyName}>Dr {doctorName || "Unknown"}</Text>
           </View>
 
           <View style={styles.topRight}>
@@ -234,7 +235,7 @@ export default function LobbyScreen() {
                 <Ionicons
                   key={i}
                   name={i <= stars ? "star" : "star-outline"}
-                  size={12}
+                  size={14}
                   color={i <= stars ? "#FFD700" : "rgba(255,255,255,0.4)"}
                 />
               ))}
@@ -242,6 +243,13 @@ export default function LobbyScreen() {
             <CoinDisplay />
           </View>
         </Animated.View>
+
+        {/* Game name banner */}
+        <Image
+          source={require("../assets/images/GameName.png")}
+          style={styles.gameName}
+          resizeMode="contain"
+        />
 
         {/* Action buttons */}
         <View style={[styles.actionRow, { paddingBottom: insets.bottom }]}>
@@ -311,15 +319,25 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginHorizontal: 12,
   },
-  clinicBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
+  dutyInfo: {
+    flexDirection: "column",
   },
-  clinicTitle: {
-    fontSize: 16,
+  dutyLabel: {
+    fontSize: 11,
+    fontWeight: "500" as const,
+    color: "rgba(255,248,238,0.7)",
+  },
+  dutyName: {
+    fontSize: 15,
     fontWeight: "700" as const,
     color: "#FFF8EE",
+  },
+  gameName: {
+    width: W * 0.75*1.5,
+    height: W * 0.55*1.5,
+    alignSelf: "center",
+    marginTop: -350,
+    zIndex: 10,
   },
   topRight: {
     flexDirection: "row",

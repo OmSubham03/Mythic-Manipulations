@@ -103,7 +103,7 @@ export default function LoadingScreen() {
       <Animated.View style={[styles.container, { opacity: fadeIn }]}>
         {/* Loading text + percentage above crystal */}
         <View style={styles.loadingArea}>
-          <Text style={styles.loadingText}>Loading...</Text>
+          <Text style={styles.loadingText}>   Loading...</Text>
           <Text style={styles.flavorText}>
             {FLAVOR_TEXTS[flavorIdx]} {progress}%
           </Text>

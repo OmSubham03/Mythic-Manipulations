@@ -43,6 +43,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const colors = useColors();
+  const { playTap } = useCrackSound();
   const {
     coins,
     reputation,

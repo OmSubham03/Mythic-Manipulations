@@ -139,7 +139,13 @@ export default function TreatmentScreen() {
   useEffect(() => {
     if (!isTutorial) return;
     // Only show TREAT_SELECT / TREAT_SOLVE for the first ailment
-    if (ailmentIdx > 0) return;
+    if (ailmentIdx > 0) {
+      // Hide tutorial overlay so player can complete remaining ailments freely
+      if (tutStep === "TREAT_SELECT" || tutStep === "TREAT_SOLVE") {
+        setTutStep("HIDDEN");
+      }
+      return;
+    }
     if (phase === "SELECTING" && tutStep !== "COMPLETE") {
       const t = setTimeout(() => setTutStep("TREAT_SELECT"), 500);
       return () => clearTimeout(t);
@@ -147,7 +153,7 @@ export default function TreatmentScreen() {
     if (phase === "TREATING" && tutStep === "TREAT_SELECT") {
       setTutStep("TREAT_SOLVE");
     }
-  }, [phase, isTutorial, ailmentIdx]);
+  }, [phase, isTutorial, ailmentIdx, tutStep]);
 
   /* ── Glow pulse for ailment indicators ── */
   useEffect(() => {
