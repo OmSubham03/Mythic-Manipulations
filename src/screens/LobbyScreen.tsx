@@ -1,7 +1,7 @@
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
@@ -15,8 +15,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import CoinDisplay from "../components/CoinDisplay";
+import TutorialOverlay, { TutorialStep } from "../components/TutorialOverlay";
 import PATIENTS, { PatientConfig, getRandomPatients } from "../constants/patients";
 import { useGame } from "../context/GameContext";
+import { useCrackSound } from "../hooks/useCrackSound";
 import type { RootStackParamList } from "../navigation/AppNavigator";
 
 const { width: W, height: H } = Dimensions.get("window");
@@ -134,15 +136,78 @@ function PatientSprite({ patient, position, delay, onPress }: PatientSpriteProps
 export default function LobbyScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { coins, reputation } = useGame();
+  const { coins, reputation, tutorialComplete, doctorName, completeTutorial, resetTutorial } = useGame();
+  const { playTap } = useCrackSound();
   const [patients] = useState<PatientConfig[]>(() => getRandomPatients(4));
   const titleAnim = useRef(new Animated.Value(0)).current;
+
+  // Tutorial state
+  const [tutStep, setTutStep] = useState<TutorialStep>("HIDDEN");
+  const isTutorialRestart = useRef(false);
 
   useEffect(() => {
     Animated.spring(titleAnim, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true }).start();
   }, []);
 
+  // Start tutorial on first load if not completed
+  useEffect(() => {
+    if (!tutorialComplete) {
+      const timer = setTimeout(() => {
+        // If name already set (restarted tutorial), skip intro
+        setTutStep(doctorName ? "CLINIC_INTRO" : "INTRO");
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [tutorialComplete]);
+
+  const handleTutorialStepDone = useCallback((step: TutorialStep) => {
+    switch (step) {
+      case "INTRO":
+        setTutStep("NAME_INPUT");
+        break;
+      case "NAME_INPUT":
+        setTutStep("CLINIC_INTRO");
+        break;
+      case "CLINIC_INTRO":
+        setTutStep("LOBBY_TAP");
+        break;
+      case "COMPLETE":
+        setTutStep("HIDDEN");
+        completeTutorial();
+        break;
+    }
+  }, [completeTutorial]);
+
+  const handlePatientPress = useCallback((patient: PatientConfig, index: number) => {
+    playTap();
+    if (tutStep === "LOBBY_TAP") {
+      // Only allow tapping the 2nd patient (index 1) during tutorial
+      if (index !== 1) return;
+      setTutStep("HIDDEN");
+      navigation.navigate("Treatment", { patientType: patient.type, tutorial: true } as any);
+    } else if (tutStep !== "HIDDEN" && tutStep !== "INTRO" && tutStep !== "NAME_INPUT" && tutStep !== "CLINIC_INTRO" && tutStep !== "COMPLETE") {
+      // Block taps during other tutorial steps
+      return;
+    } else if (tutStep === "HIDDEN") {
+      navigation.navigate("Treatment", { patientType: patient.type });
+    }
+  }, [tutStep, navigation]);
+
+  const handleRestartTutorial = useCallback(() => {
+    isTutorialRestart.current = true;
+    resetTutorial();
+    setTutStep(doctorName ? "CLINIC_INTRO" : "INTRO");
+  }, [resetTutorial, doctorName]);
+
   const stars = Math.round((reputation / 100) * 5);
+
+  // Spotlight rect for 2nd patient (index 1)
+  const spotlightRect = tutStep === "LOBBY_TAP" ? {
+    x: CHAIR_POSITIONS[1].cx * W - SPRITE_SIZE / 2 - 4,
+    y: CHAIR_POSITIONS[1].cy * H - SPRITE_SIZE - 4,
+    w: SPRITE_SIZE + 8,
+    h: SPRITE_SIZE + 8,
+  } : null;
 
   return (
     <ImageBackground
@@ -180,14 +245,23 @@ export default function LobbyScreen() {
 
         {/* Action buttons */}
         <View style={[styles.actionRow, { paddingBottom: insets.bottom }]}>
+          {/* Tutorial restart button */}
+          {tutorialComplete && (
+            <TouchableOpacity
+              onPress={() => { playTap(); handleRestartTutorial(); }}
+              style={[styles.actionBtn, { marginRight: "auto" }]}
+            >
+              <Ionicons name="help-circle-outline" size={20} color="#FFF8EE" />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
-            onPress={() => navigation.navigate("Upgrades")}
+            onPress={() => { playTap(); navigation.navigate("Upgrades"); }}
             style={styles.actionBtn}
           >
             <Ionicons name="construct" size={20} color="#FFF8EE" />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigation.navigate("Profile")}
+            onPress={() => { playTap(); navigation.navigate("Profile"); }}
             style={styles.actionBtn}
           >
             <Ionicons name="person" size={20} color="#FFF8EE" />
@@ -202,11 +276,17 @@ export default function LobbyScreen() {
           patient={patient}
           position={CHAIR_POSITIONS[i]}
           delay={i * 120}
-          onPress={() =>
-            navigation.navigate("Treatment", { patientType: patient.type })
-          }
+          onPress={() => handlePatientPress(patient, i)}
         />
       ))}
+
+      {/* Tutorial overlay */}
+      <TutorialOverlay
+        step={tutStep}
+        onStepDone={handleTutorialStepDone}
+        spotlightRect={spotlightRect}
+        onSkip={isTutorialRestart.current ? () => setTutStep("HIDDEN") : undefined}
+      />
     </ImageBackground>
   );
 }

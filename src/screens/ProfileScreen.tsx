@@ -15,6 +15,7 @@ import ReputationDisplay from "../components/ReputationDisplay";
 import { useGame } from "../context/GameContext";
 import UPGRADES from "../constants/upgrades";
 import { useColors } from "../hooks/useColors";
+import { useCrackSound } from "../hooks/useCrackSound";
 import type { RootStackParamList } from "../navigation/AppNavigator";
 
 interface StatCardProps {
@@ -61,7 +62,7 @@ export default function ProfileScreen() {
           { paddingTop: insets.top + 8, paddingBottom: 20 },
         ]}
       >
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => { playTap(); navigation.goBack(); }} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color={colors.foreground} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>

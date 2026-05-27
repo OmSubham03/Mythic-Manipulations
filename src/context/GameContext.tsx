@@ -14,6 +14,8 @@ interface GameState {
   highScore: number;
   ownedUpgrades: string[];
   totalCrackCount: number;
+  doctorName: string;
+  tutorialComplete: boolean;
 }
 
 interface GameContextValue extends GameState {
@@ -26,6 +28,9 @@ interface GameContextValue extends GameState {
   purchaseUpgrade: (upgradeId: string, cost: number) => boolean;
   hasUpgrade: (upgradeId: string) => boolean;
   updateHighScore: (score: number) => void;
+  setDoctorName: (name: string) => void;
+  completeTutorial: () => void;
+  resetTutorial: () => void;
 }
 
 const GameContext = createContext<GameContextValue | null>(null);
@@ -39,6 +44,8 @@ const DEFAULT_STATE: GameState = {
   highScore: 0,
   ownedUpgrades: [],
   totalCrackCount: 0,
+  doctorName: "",
+  tutorialComplete: false,
 };
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
@@ -169,6 +176,21 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [updateState]
   );
 
+  const setDoctorName = useCallback(
+    (name: string) => {
+      updateState((prev) => ({ ...prev, doctorName: name }));
+    },
+    [updateState]
+  );
+
+  const completeTutorial = useCallback(() => {
+    updateState((prev) => ({ ...prev, tutorialComplete: true }));
+  }, [updateState]);
+
+  const resetTutorial = useCallback(() => {
+    updateState((prev) => ({ ...prev, tutorialComplete: false }));
+  }, [updateState]);
+
   if (!loaded) return null;
 
   return (
@@ -184,6 +206,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         purchaseUpgrade,
         hasUpgrade,
         updateHighScore,
+        setDoctorName,
+        completeTutorial,
+        resetTutorial,
       }}
     >
       {children}

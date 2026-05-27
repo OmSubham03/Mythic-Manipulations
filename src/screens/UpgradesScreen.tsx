@@ -14,11 +14,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useGame } from "../context/GameContext";
 import UPGRADES from "../constants/upgrades";
 import { useColors } from "../hooks/useColors";
+import { useCrackSound } from "../hooks/useCrackSound";
 
 export default function UpgradesScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const colors = useColors();
+  const { playTap } = useCrackSound();
   const { coins, purchaseUpgrade, hasUpgrade } = useGame();
   const [justBought, setJustBought] = useState<string | null>(null);
 
@@ -47,7 +49,7 @@ export default function UpgradesScreen() {
           { paddingTop: insets.top + 8, paddingBottom: 16 },
         ]}
       >
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => { playTap(); navigation.goBack(); }} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color={colors.foreground} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
@@ -79,7 +81,7 @@ export default function UpgradesScreen() {
           return (
             <TouchableOpacity
               key={upgrade.id}
-              onPress={() => handlePurchase(upgrade.id, upgrade.cost, upgrade.name)}
+              onPress={() => { playTap(); handlePurchase(upgrade.id, upgrade.cost, upgrade.name); }}
               activeOpacity={owned ? 1 : 0.85}
               style={[
                 styles.card,
