@@ -7,7 +7,9 @@ export type PatientType =
   | "MINI_DRAGON"
   | "CRYSTAL_DEER"
   | "LAVA_BLOB"
-  | "MOON_BUNNY";
+  | "MOON_BUNNY"
+  | "SNOW_LION"
+  | "GREEN_DEER";
 
 export type AilmentType = "TEETH" | "HEAD" | "NECK" | "CHEST" | "BACK" | "LEG" | "STOMACH" | "EYE";
 export type GestureType = "DRAG_UP" | "DRAG_DOWN" | "DRAG_HORIZONTAL" | "TAP_RAPID";
@@ -428,6 +430,87 @@ const PATIENTS: PatientConfig[] = [
         dragThreshold: 95,
         bodyZone: { x: 0.62, y: 0.72, size: 48 },
         crunchLabel: "BOING!",
+      },
+    ],
+  },
+  {
+    type: "SNOW_LION",
+    name: "Frost",
+    kingdom: "Glacier Kingdom",
+    bodyColor: "#C8DCF0",
+    glowColor: "#E0F0FF",
+    accentColor: "#6A9CC8",
+    image: require("../assets/images/sit_snowlion.png"),
+    stiffness: 0.7,
+    patienceDuration: 32,
+    rewardMultiplier: 1.5,
+    baseReward: 100,
+    description: "A regal snow lion with frosty joints and a frozen mane.",
+    entrySound: "ice",
+    level: 1,
+    ailments: [
+      {
+        id: "snowlion_teeth",
+        type: "TEETH",
+        label: "Frosted Fang Fracture",
+        description: "Check the cracked ice fang!",
+        gesture: "TAP_RAPID",
+        miniGame: "DENTAL_CHECK",
+        dragThreshold: 80,
+        tapCount: 6,
+        bodyZone: { x: 0.5, y: 0.20, size: 50 },
+        crunchLabel: "CRUNCH!",
+      },
+      {
+        id: "snowlion_back",
+        type: "BACK",
+        label: "Glacier Spine Freeze",
+        description: "X-ray the frozen spine!",
+        gesture: "DRAG_UP",
+        miniGame: "XRAY_SCAN",
+        dragThreshold: 105,
+        bodyZone: { x: 0.5, y: 0.52, size: 58 },
+        crunchLabel: "CRACK!",
+      },
+    ],
+  },
+  {
+    type: "GREEN_DEER",
+    name: "Clover",
+    kingdom: "Meadow Kingdom",
+    bodyColor: "#4CAF50",
+    glowColor: "#81C784",
+    accentColor: "#2E7D32",
+    image: require("../assets/images/sit_greendeer.png"),
+    stiffness: 1.0,
+    patienceDuration: 36,
+    rewardMultiplier: 1.4,
+    baseReward: 95,
+    description: "A graceful forest deer with vine-tangled antlers.",
+    entrySound: "chime",
+    level: 1,
+    ailments: [
+      {
+        id: "greendeer_stomach",
+        type: "STOMACH",
+        label: "Tangled Root Belly",
+        description: "Find the path to untangle!",
+        gesture: "DRAG_HORIZONTAL",
+        miniGame: "FIND_PATH",
+        dragThreshold: 95,
+        bodyZone: { x: 0.5, y: 0.55, size: 52 },
+        crunchLabel: "RUSTLE!",
+      },
+      {
+        id: "greendeer_neck",
+        type: "NECK",
+        label: "Vine-Wrapped Neck",
+        description: "X-ray the tangled neck!",
+        gesture: "DRAG_HORIZONTAL",
+        miniGame: "XRAY_SCAN",
+        dragThreshold: 85,
+        bodyZone: { x: 0.5, y: 0.28, size: 48 },
+        crunchLabel: "SNAP!",
       },
     ],
   },

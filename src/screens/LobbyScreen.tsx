@@ -47,6 +47,8 @@ const SIT_IMAGES: Record<string, any> = {
   CRYSTAL_DEER: require("../assets/images/sit_deer.png"),
   LAVA_BLOB: require("../assets/images/sit_lava.png"),
   MOON_BUNNY: require("../assets/images/sit_bunny.png"),
+  SNOW_LION: require("../assets/images/sit_snowlion.png"),
+  GREEN_DEER: require("../assets/images/sit_greendeer.png"),
 };
 
 // Chair positions as fraction of screen (x = center, y = bottom of sprite)

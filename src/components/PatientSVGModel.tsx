@@ -160,7 +160,7 @@ export default function PatientSVGModel({
         if (activeRef.current !== "NECK" || successRef.current) return;
         const pt = patientTypeRef.current;
         let delta = 0;
-        if (pt === "HARPY" || pt === "CRYSTAL_DEER") {
+        if (pt === "HARPY" || pt === "CRYSTAL_DEER" || pt === "GREEN_DEER") {
           delta = Math.min(1, Math.abs(gs.dx) / 90);
         } else if (pt === "ICE_YETI") {
           delta = Math.min(1, Math.max(0, -gs.dy) / 90);
@@ -271,6 +271,10 @@ export default function PatientSVGModel({
     LAVA_BLOB_BACK:       { x: 24*sx,  y: 102*sy, w: 152*sx, h: 185*sy },
     MOON_BUNNY_NECK:      { x: 60*sx,  y: 16*sy,  w: 80*sx,  h: 108*sy },
     MOON_BUNNY_KNEE:      { x: 104*sx, y: 252*sy, w: 52*sx,  h: 68*sy  },
+    SNOW_LION_NECK:       { x: 70*sx,  y: 90*sy,  w: 60*sx,  h: 60*sy  },
+    SNOW_LION_BACK:       { x: 30*sx,  y: 140*sy, w: 140*sx, h: 130*sy },
+    GREEN_DEER_NECK:      { x: 82*sx,  y: 140*sy, w: 36*sx,  h: 80*sy  },
+    GREEN_DEER_BACK:      { x: 36*sx,  y: 190*sy, w: 128*sx, h: 100*sy },
   };
 
   const getZone = () => {
@@ -810,6 +814,168 @@ export default function PatientSVGModel({
     </Svg>
   );
 
+  // ─── SNOW LION ────────────────────────────────────────────────────────────
+  const renderSnowLion = () => (
+    <Svg width={width} height={height} viewBox="0 0 200 320">
+      <Defs>
+        <RadialGradient id="slBody" cx="36%" cy="26%" r="68%">
+          <Stop offset="0%" stopColor="#E8F2FF" /><Stop offset="100%" stopColor="#9BBDD8" />
+        </RadialGradient>
+        <RadialGradient id="slHead" cx="38%" cy="28%" r="68%">
+          <Stop offset="0%" stopColor="#F0F8FF" /><Stop offset="100%" stopColor="#C8DCF0" />
+        </RadialGradient>
+        <RadialGradient id="slMane" cx="50%" cy="40%" r="60%">
+          <Stop offset="0%" stopColor="#D8ECFF" /><Stop offset="100%" stopColor="#8AB4D8" />
+        </RadialGradient>
+      </Defs>
+      {/* Tail */}
+      <Path d="M 148 250 Q 172 238 178 210 Q 182 185 170 168" stroke="#9BBDD8" strokeWidth="14" fill="none" strokeLinecap="round" />
+      <Path d="M 148 250 Q 172 238 178 210 Q 182 185 170 168" stroke="#C8DCF0" strokeWidth="7" fill="none" strokeLinecap="round" opacity="0.6" />
+      <Circle cx="170" cy="165" r="12" fill="url(#slMane)" />
+      {/* Back legs */}
+      <Rect x="60" y="262" width="22" height="56" rx="11" fill="url(#slBody)" />
+      <Rect x="118" y="262" width="22" height="56" rx="11" fill="url(#slBody)" />
+      <Ellipse cx="71" cy="316" rx="16" ry="8" fill="url(#slBody)" />
+      <Ellipse cx="129" cy="316" rx="16" ry="8" fill="url(#slBody)" />
+      {/* Body */}
+      <AnimatedG style={{ transform: [{ rotate: backRotate }, { scaleY: backScaleY }] }}>
+        <Ellipse cx="100" cy="218" rx="60" ry="62" fill="url(#slBody)" />
+        <Ellipse cx="92" cy="205" rx="24" ry="18" fill="rgba(255,255,255,0.2)" />
+        <Ellipse cx="100" cy="230" rx="28" ry="20" fill="rgba(255,255,255,0.1)" />
+        {isBack && <Ellipse cx="100" cy="218" rx="63" ry="65" fill="rgba(255,215,0,0.2)" stroke="#FFD700" strokeWidth="2.5" />}
+      </AnimatedG>
+      {/* Front legs */}
+      <Rect x="40" y="242" width="20" height="60" rx="10" fill="url(#slBody)" />
+      <Rect x="140" y="242" width="20" height="60" rx="10" fill="url(#slBody)" />
+      <Ellipse cx="50" cy="300" rx="14" ry="8" fill="url(#slBody)" />
+      <Ellipse cx="150" cy="300" rx="14" ry="8" fill="url(#slBody)" />
+      {/* Mane — fluffy ring around head */}
+      <AnimatedG style={{ transform: [{ translateY: neckHeadTY }] }}>
+        <Ellipse cx="100" cy="128" rx="58" ry="52" fill="url(#slMane)" />
+        <Circle cx="62" cy="108" r="14" fill="url(#slMane)" />
+        <Circle cx="138" cy="108" r="14" fill="url(#slMane)" />
+        <Circle cx="54" cy="128" r="12" fill="url(#slMane)" />
+        <Circle cx="146" cy="128" r="12" fill="url(#slMane)" />
+        <Circle cx="62" cy="148" r="12" fill="url(#slMane)" />
+        <Circle cx="138" cy="148" r="12" fill="url(#slMane)" />
+        <Circle cx="80" cy="160" r="10" fill="url(#slMane)" />
+        <Circle cx="120" cy="160" r="10" fill="url(#slMane)" />
+        {/* Head */}
+        <Circle cx="100" cy="118" r="40" fill="url(#slHead)" />
+        <Ellipse cx="92" cy="106" rx="18" ry="14" fill="rgba(255,255,255,0.2)" />
+        {/* Ears */}
+        <Ellipse cx="70" cy="86" rx="12" ry="16" fill="url(#slHead)" />
+        <Ellipse cx="70" cy="86" rx="7" ry="10" fill="#B8D0E8" />
+        <Ellipse cx="130" cy="86" rx="12" ry="16" fill="url(#slHead)" />
+        <Ellipse cx="130" cy="86" rx="7" ry="10" fill="#B8D0E8" />
+        {/* Eyes */}
+        <Ellipse cx="84" cy="114" rx="13" ry="14" fill="white" />
+        <Ellipse cx="116" cy="114" rx="13" ry="14" fill="white" />
+        <Circle cx="85" cy="116" r="8" fill="#1A3A5C" />
+        <Circle cx="117" cy="116" r="8" fill="#1A3A5C" />
+        <Circle cx="83" cy="113" r="3.5" fill="white" />
+        <Circle cx="115" cy="113" r="3.5" fill="white" />
+        {/* Nose */}
+        <Ellipse cx="100" cy="130" rx="8" ry="5" fill="#8AB4D8" />
+        <Circle cx="100" cy="130" r="3" fill="#6A9CC8" />
+        {renderMoodMouth(mood, 100, 138, 12, "#6A9CC8")}
+        {renderMoodEyes(mood, 85, 117, 116, 8, "#F0F8FF", "#1A3A5C")}
+        {/* Cheek blush */}
+        <Ellipse cx="70" cy="124" rx="10" ry="6" fill="#C8D8F0" opacity="0.55" />
+        <Ellipse cx="130" cy="124" rx="10" ry="6" fill="#C8D8F0" opacity="0.55" />
+        {isNeck && <Circle cx="100" cy="118" r="44" fill="rgba(255,215,0,0.18)" stroke="#FFD700" strokeWidth="2.5" />}
+      </AnimatedG>
+      {/* Snow sparkles */}
+      <Circle cx="42" cy="195" r="3" fill="white" opacity="0.85" />
+      <Circle cx="158" cy="205" r="2.5" fill="white" opacity="0.75" />
+      <Circle cx="38" cy="248" r="2" fill="white" opacity="0.7" />
+      <Path d="M 165 240 L 167 234 L 169 240 L 175 240 L 170 244 L 172 250 L 167 246 L 162 250 L 164 244 L 159 240 Z" fill="rgba(200,220,255,0.5)" />
+    </Svg>
+  );
+
+  // ─── GREEN DEER ───────────────────────────────────────────────────────────
+  const renderGreenDeer = () => (
+    <Svg width={width} height={height} viewBox="0 0 200 320">
+      <Defs>
+        <RadialGradient id="gdBody" cx="36%" cy="26%" r="68%">
+          <Stop offset="0%" stopColor="#A5D6A7" /><Stop offset="100%" stopColor="#388E3C" />
+        </RadialGradient>
+        <RadialGradient id="gdHead" cx="38%" cy="28%" r="68%">
+          <Stop offset="0%" stopColor="#C8E6C9" /><Stop offset="100%" stopColor="#4CAF50" />
+        </RadialGradient>
+      </Defs>
+      {/* Four elegant legs */}
+      <Rect x="66" y="258" width="16" height="68" rx="8" fill="url(#gdBody)" />
+      <Rect x="86" y="262" width="14" height="62" rx="7" fill="url(#gdBody)" />
+      <Rect x="103" y="262" width="14" height="62" rx="7" fill="url(#gdBody)" />
+      <Rect x="120" y="258" width="16" height="68" rx="8" fill="url(#gdBody)" />
+      {/* Hooves */}
+      <Rect x="64" y="320" width="20" height="6" rx="3" fill="#2E7D32" />
+      <Rect x="84" y="318" width="18" height="6" rx="3" fill="#2E7D32" />
+      <Rect x="101" y="318" width="18" height="6" rx="3" fill="#2E7D32" />
+      <Rect x="118" y="320" width="20" height="6" rx="3" fill="#2E7D32" />
+      {/* Knee vine joint */}
+      <AnimatedG style={{ transform: [{ translateY: kneeTY }] }}>
+        <Circle cx="74" cy="262" r="10" fill="url(#gdHead)" />
+        <Circle cx="74" cy="262" r="6" fill="rgba(129,199,132,0.6)" />
+        {isKnee && <Circle cx="74" cy="262" r="14" fill="rgba(255,215,0,0.3)" stroke="#FFD700" strokeWidth="2.5" />}
+      </AnimatedG>
+      {/* Body */}
+      <AnimatedG style={{ transform: [{ scale: breathScale }] }}>
+        <Ellipse cx="100" cy="220" rx="48" ry="52" fill="url(#gdBody)" />
+        <Ellipse cx="92" cy="208" rx="20" ry="16" fill="rgba(255,255,255,0.18)" />
+        {/* Leaf pattern on flank */}
+        <Path d="M 126 210 Q 132 204 138 210 Q 132 216 126 210 Z" fill="rgba(255,255,255,0.25)" />
+        <Path d="M 68 225 Q 74 219 80 225 Q 74 231 68 225 Z" fill="rgba(255,255,255,0.2)" />
+      </AnimatedG>
+      {/* Neck + head */}
+      <AnimatedG style={{ transform: [{ rotate: neckTiltDeg }] }}>
+        <Rect x="88" y="148" width="24" height="78" rx="12" fill="url(#gdBody)" />
+        <Rect x="93" y="155" width="14" height="58" rx="7" fill="rgba(255,255,255,0.18)" />
+        {/* Vine wrapping around neck */}
+        <Path d="M 90 158 Q 96 162 102 158 Q 108 154 112 160" stroke="#2E7D32" strokeWidth="2" fill="none" opacity="0.5" />
+        <Path d="M 88 172 Q 94 176 100 172 Q 106 168 112 174" stroke="#2E7D32" strokeWidth="2" fill="none" opacity="0.5" />
+        {isNeck && <Rect x="85" y="145" width="30" height="84" rx="15" fill="rgba(255,215,0,0.25)" stroke="#FFD700" strokeWidth="2.5" />}
+        {/* Head */}
+        <Ellipse cx="100" cy="132" rx="36" ry="30" fill="url(#gdHead)" />
+        <Ellipse cx="93" cy="122" rx="18" ry="13" fill="rgba(255,255,255,0.2)" />
+        {/* Branch-like antlers with leaves */}
+        <Path d="M 82 110 L 68 74 L 58 54" stroke="#2E7D32" strokeWidth="7" fill="none" strokeLinecap="round" />
+        <Path d="M 68 74 L 56 64" stroke="#2E7D32" strokeWidth="5" fill="none" strokeLinecap="round" />
+        <Path d="M 68 74 L 74 60" stroke="#2E7D32" strokeWidth="5" fill="none" strokeLinecap="round" />
+        <Path d="M 118 110 L 132 74 L 142 54" stroke="#2E7D32" strokeWidth="7" fill="none" strokeLinecap="round" />
+        <Path d="M 132 74 L 144 64" stroke="#2E7D32" strokeWidth="5" fill="none" strokeLinecap="round" />
+        <Path d="M 132 74 L 126 60" stroke="#2E7D32" strokeWidth="5" fill="none" strokeLinecap="round" />
+        {/* Leaves at antler tips */}
+        <Path d="M 58 54 Q 52 48 58 44 Q 64 48 58 54 Z" fill="#66BB6A" />
+        <Path d="M 56 64 Q 50 58 56 54 Q 62 58 56 64 Z" fill="#81C784" />
+        <Path d="M 74 60 Q 68 54 74 50 Q 80 54 74 60 Z" fill="#66BB6A" />
+        <Path d="M 142 54 Q 148 48 142 44 Q 136 48 142 54 Z" fill="#66BB6A" />
+        <Path d="M 144 64 Q 150 58 144 54 Q 138 58 144 64 Z" fill="#81C784" />
+        <Path d="M 126 60 Q 132 54 126 50 Q 120 54 126 60 Z" fill="#66BB6A" />
+        {/* Eyes */}
+        <Ellipse cx="88" cy="130" rx="12" ry="13" fill="white" />
+        <Ellipse cx="112" cy="130" rx="12" ry="13" fill="white" />
+        <Circle cx="89" cy="132" r="7" fill="#1B5E20" />
+        <Circle cx="113" cy="132" r="7" fill="#1B5E20" />
+        <Circle cx="87" cy="130" r="3" fill="white" />
+        <Circle cx="111" cy="130" r="3" fill="white" />
+        {/* Nose */}
+        <Ellipse cx="100" cy="142" rx="10" ry="7" fill="#4CAF50" />
+        <Circle cx="100" cy="142" r="4" fill="#2E7D32" />
+        {renderMoodMouth(mood, 100, 150, 11, "#2E7D32")}
+        {renderMoodEyes(mood, 89, 113, 132, 7, "#C8E6C9", "#1B5E20")}
+        {/* Cheek blush */}
+        <Ellipse cx="74" cy="135" rx="9" ry="5" fill="#A5D6A7" opacity="0.5" />
+        <Ellipse cx="126" cy="135" rx="9" ry="5" fill="#A5D6A7" opacity="0.5" />
+      </AnimatedG>
+      {/* Leaf sparkles */}
+      <Path d="M 40 220 Q 34 214 40 210 Q 46 214 40 220 Z" fill="rgba(129,199,132,0.5)" />
+      <Path d="M 160 198 Q 154 192 160 188 Q 166 192 160 198 Z" fill="rgba(129,199,132,0.4)" />
+      <Circle cx="44" cy="260" r="3" fill="rgba(165,214,167,0.6)" />
+    </Svg>
+  );
+
   const renderers: Partial<Record<PatientType, () => JSX.Element>> = {
     GOLEM: renderGolem,
     HARPY: renderHarpy,
@@ -820,6 +986,8 @@ export default function PatientSVGModel({
     CRYSTAL_DEER: renderDeer,
     LAVA_BLOB: renderLava,
     MOON_BUNNY: renderBunny,
+    SNOW_LION: renderSnowLion,
+    GREEN_DEER: renderGreenDeer,
   };
 
   const renderFn = renderers[patientType] ?? renderGolem;

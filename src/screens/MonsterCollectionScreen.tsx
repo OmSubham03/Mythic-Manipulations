@@ -167,6 +167,8 @@ function getMonsterIcon(type: string): string {
     case "CRYSTAL_DEER": return "🦌";
     case "LAVA_BLOB": return "🌋";
     case "MOON_BUNNY": return "🐰";
+    case "SNOW_LION": return "🦁";
+    case "GREEN_DEER": return "🌿";
     default: return "❓";
   }
 }
