@@ -19,6 +19,8 @@ const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
 const AnimatedEllipse = Animated.createAnimatedComponent(Ellipse);
 
+export type Mood = "pain" | "angry" | "happy";
+
 interface Props {
   patientType: PatientType;
   bodyColor: string;
@@ -30,7 +32,65 @@ interface Props {
   width: number;
   height: number;
   tapCount?: number;
+  mood?: Mood;
 }
+
+/* ── Mood-driven facial overlays ────────────────────────────────── */
+
+/** Eyebrows / tears overlay — rendered AFTER normal eyes */
+const renderMoodEyes = (
+  mood: Mood,
+  lx: number, rx: number, ey: number, er: number,
+  faceColor: string, browColor: string,
+) => {
+  if (mood === "pain") {
+    return (
+      <G>
+        <Path d={`M ${lx - er} ${ey - er - 4} Q ${lx} ${ey - er - 11} ${lx + er} ${ey - er - 6}`} stroke={browColor} strokeWidth="2.5" fill="none" strokeLinecap="round" />
+        <Path d={`M ${rx - er} ${ey - er - 6} Q ${rx} ${ey - er - 11} ${rx + er} ${ey - er - 4}`} stroke={browColor} strokeWidth="2.5" fill="none" strokeLinecap="round" />
+        <Ellipse cx={lx + er * 0.5} cy={ey + er + 6} rx={2} ry={4} fill="#88CCFF" opacity="0.75" />
+      </G>
+    );
+  }
+  if (mood === "angry") {
+    return (
+      <G>
+        <Path d={`M ${lx - er - 2} ${ey - er - 8} L ${lx + er - 2} ${ey - er - 1}`} stroke={browColor} strokeWidth="3.5" fill="none" strokeLinecap="round" />
+        <Path d={`M ${rx + er + 2} ${ey - er - 8} L ${rx - er + 2} ${ey - er - 1}`} stroke={browColor} strokeWidth="3.5" fill="none" strokeLinecap="round" />
+      </G>
+    );
+  }
+  // happy → ^ ^ closed eyes
+  return (
+    <G>
+      <Circle cx={lx} cy={ey} r={er + 5} fill={faceColor} />
+      <Circle cx={rx} cy={ey} r={er + 5} fill={faceColor} />
+      <Path d={`M ${lx - er + 1} ${ey + 3} Q ${lx} ${ey - er} ${lx + er - 1} ${ey + 3}`} stroke={browColor} strokeWidth="3" fill="none" strokeLinecap="round" />
+      <Path d={`M ${rx - er + 1} ${ey + 3} Q ${rx} ${ey - er} ${rx + er - 1} ${ey + 3}`} stroke={browColor} strokeWidth="3" fill="none" strokeLinecap="round" />
+    </G>
+  );
+};
+
+/** Mood-driven mouth */
+const renderMoodMouth = (
+  mood: Mood,
+  cx: number, y: number, hw: number, color: string,
+) => {
+  if (mood === "pain") {
+    return <Path d={`M ${cx - hw} ${y + 4} Q ${cx} ${y - 8} ${cx + hw} ${y + 4}`} stroke={color} strokeWidth="3" fill="none" strokeLinecap="round" />;
+  }
+  if (mood === "angry") {
+    return (
+      <G>
+        <Path d={`M ${cx - hw} ${y} Q ${cx} ${y + 10} ${cx + hw} ${y}`} stroke={color} strokeWidth="3" fill={color} strokeLinecap="round" opacity="0.85" />
+        <Path d={`M ${cx - hw + 3} ${y + 2} L ${cx - hw + 6} ${y + 5}`} stroke="white" strokeWidth="1.5" fill="none" opacity="0.7" />
+        <Path d={`M ${cx + hw - 3} ${y + 2} L ${cx + hw - 6} ${y + 5}`} stroke="white" strokeWidth="1.5" fill="none" opacity="0.7" />
+      </G>
+    );
+  }
+  // happy
+  return <Path d={`M ${cx - hw} ${y - 2} Q ${cx} ${y + 14} ${cx + hw} ${y - 2}`} stroke={color} strokeWidth="3.5" fill="none" strokeLinecap="round" />;
+};
 
 export default function PatientSVGModel({
   patientType,
@@ -43,6 +103,7 @@ export default function PatientSVGModel({
   width,
   height,
   tapCount = 5,
+  mood = "pain",
 }: Props) {
   const neckStretch = useRef(new Animated.Value(0)).current;
   const backAngle = useRef(new Animated.Value(0)).current;
@@ -268,7 +329,8 @@ export default function PatientSVGModel({
         <Circle cx="116" cy="63" r="4" fill="white" />
         <Ellipse cx="74" cy="82" rx="11" ry="7" fill="#FFB8A0" opacity="0.55" />
         <Ellipse cx="126" cy="82" rx="11" ry="7" fill="#FFB8A0" opacity="0.55" />
-        <Path d="M 87 90 Q 100 102 113 90" stroke="#6B4A2E" strokeWidth="3.5" fill="none" strokeLinecap="round" />
+        {renderMoodMouth(mood, 100, 92, 13, "#6B4A2E")}
+        {renderMoodEyes(mood, 90, 114, 66, 9, "#C4B48A", "#6B4A2E")}
         <Path d="M 68 60 Q 76 54 72 68" stroke={accentColor} strokeWidth="2" fill="none" opacity="0.4" />
         <Path d="M 122 54 Q 130 62 126 72" stroke={accentColor} strokeWidth="2" fill="none" opacity="0.4" />
       </AnimatedG>
@@ -324,6 +386,7 @@ export default function PatientSVGModel({
         <Circle cx="115" cy="96" r="3.5" fill="white" />
         <Ellipse cx="72" cy="108" rx="9" ry="6" fill="#FFB8EA" opacity="0.5" />
         <Ellipse cx="128" cy="108" rx="9" ry="6" fill="#FFB8EA" opacity="0.5" />
+        {renderMoodEyes(mood, 85, 117, 98, 8, "#FAFAFF", "#3A3A5E")}
         {isNeck && <Circle cx="100" cy="100" r="47" fill="rgba(255,215,0,0.18)" stroke="#FFD700" strokeWidth="2.5" />}
       </AnimatedG>
     </Svg>
@@ -372,6 +435,8 @@ export default function PatientSVGModel({
       <Circle cx="83" cy="99" r="4" fill="white" />
       <Circle cx="115" cy="99" r="4" fill="white" />
       <Path d="M 96 112 L 100 117 L 104 112 Z" fill={accentColor} />
+      {renderMoodMouth(mood, 100, 122, 12, "#6B4A2E")}
+      {renderMoodEyes(mood, 85, 117, 102, 9, "#FFCC80", "#6B4A2E")}
       <Ellipse cx="72" cy="112" rx="10" ry="6" fill="#FF8C00" opacity="0.4" />
       <Ellipse cx="128" cy="112" rx="10" ry="6" fill="#FF8C00" opacity="0.4" />
       <Circle cx="58" cy="195" r="4.5" fill="#FFD166" opacity="0.65" />
@@ -418,7 +483,8 @@ export default function PatientSVGModel({
         <Circle cx="81" cy="162" r="4.5" fill="white" />
         <Circle cx="117" cy="162" r="4.5" fill="white" />
         <Ellipse cx="100" cy="180" rx="9" ry="7" fill={accentColor} />
-        <Path d="M 85 192 Q 100 204 115 192" stroke="#4A6572" strokeWidth="3.5" fill="none" strokeLinecap="round" />
+        {renderMoodMouth(mood, 100, 194, 15, "#4A6572")}
+        {renderMoodEyes(mood, 84, 120, 164, 10, "#FCFEFF", "#4A6572")}
         <Ellipse cx="68" cy="175" rx="13" ry="8" fill="#B8D8F0" opacity="0.55" />
         <Ellipse cx="132" cy="175" rx="13" ry="8" fill="#B8D8F0" opacity="0.55" />
         {isNeck && <Ellipse cx="100" cy="152" rx="60" ry="44" fill="rgba(255,215,0,0.2)" stroke="#FFD700" strokeWidth="2.5" />}
@@ -476,7 +542,8 @@ export default function PatientSVGModel({
         <Circle cx="111" cy="107" r="3" fill="white" />
         <Ellipse cx="74" cy="116" rx="9" ry="5" fill="#FFB8A0" opacity="0.55" />
         <Ellipse cx="126" cy="116" rx="9" ry="5" fill="#FFB8A0" opacity="0.55" />
-        <Path d="M 88 120 Q 100 130 112 120" stroke="#6B4A2E" strokeWidth="3" fill="none" strokeLinecap="round" />
+        {renderMoodMouth(mood, 100, 122, 12, "#6B4A2E")}
+        {renderMoodEyes(mood, 89, 113, 110, 7, "#EDD8C8", "#6B4A2E")}
       </AnimatedG>
       {/* Mushroom cap - floats with head */}
       <AnimatedG style={{ transform: [{ translateY: neckHeadTY }] }}>
@@ -550,6 +617,7 @@ export default function PatientSVGModel({
         <Circle cx="116" cy="90" r="3.5" fill="white" />
         <Ellipse cx="68" cy="100" rx="10" ry="6" fill="#FFB8EA" opacity="0.4" />
         <Ellipse cx="132" cy="100" rx="10" ry="6" fill="#FFB8EA" opacity="0.4" />
+        {renderMoodEyes(mood, 84, 118, 92, 8, "#BBA8E4", "#3A2260")}
       </AnimatedG>
     </Svg>
   );
@@ -612,6 +680,8 @@ export default function PatientSVGModel({
         <Circle cx="111" cy="128" r="3" fill="white" />
         <Ellipse cx="100" cy="140" rx="12" ry="8" fill="#9CC8E8" />
         <Circle cx="100" cy="140" r="4" fill="#60A0C8" />
+        {renderMoodMouth(mood, 100, 148, 11, "#4A7A9C")}
+        {renderMoodEyes(mood, 89, 113, 130, 7, "#E8F4FF", "#1A3A5C")}
         <Ellipse cx="74" cy="133" rx="9" ry="5" fill="#FFB8EA" opacity="0.45" />
         <Ellipse cx="126" cy="133" rx="9" ry="5" fill="#FFB8EA" opacity="0.45" />
       </AnimatedG>
@@ -666,7 +736,8 @@ export default function PatientSVGModel({
       <Circle cx="119" cy="173" r="8" fill="#FF2200" />
       <Circle cx="80" cy="171" r="4" fill="#FFAA44" />
       <Circle cx="116" cy="171" r="4" fill="#FFAA44" />
-      <Path d="M 82 188 Q 100 200 118 188" stroke="#FF6B35" strokeWidth="4" fill="none" strokeLinecap="round" />
+      {renderMoodMouth(mood, 100, 190, 18, "#FF6B35")}
+      {renderMoodEyes(mood, 83, 119, 173, 8, "#4A1E00", "#FF2200")}
       {/* Lava drips + feet */}
       <Ellipse cx="75" cy="278" rx="26" ry="18" fill="url(#lOuter)" />
       <Ellipse cx="125" cy="278" rx="26" ry="18" fill="url(#lOuter)" />
@@ -731,7 +802,8 @@ export default function PatientSVGModel({
       <Circle cx="84" cy="141" r="4" fill="white" />
       <Circle cx="112" cy="141" r="4" fill="white" />
       <Ellipse cx="100" cy="156" rx="6" ry="4" fill="#D4B8E0" />
-      <Path d="M 92 160 Q 100 167 108 160" stroke="#A090C8" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+      {renderMoodMouth(mood, 100, 162, 8, "#A090C8")}
+      {renderMoodEyes(mood, 87, 115, 144, 9, "#F0EBFF", "#5A4A7E")}
       <Ellipse cx="72" cy="150" rx="11" ry="7" fill="#FFB8EA" opacity="0.5" />
       <Ellipse cx="128" cy="150" rx="11" ry="7" fill="#FFB8EA" opacity="0.5" />
       {/* Star markings */}

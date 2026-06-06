@@ -200,7 +200,11 @@ export default function LobbyScreen() {
     setTutStep(doctorName ? "CLINIC_INTRO" : "INTRO");
   }, [resetTutorial, doctorName]);
 
-  const stars = Math.round((reputation / 100) * 5);
+  const RANK_NAMES = ["Newbie", "Intern", "Junior", "Specialist", "Master", "Legend"];
+  const rankIndex = Math.min(5, Math.floor(reputation / 1000));
+  const rankLevel = reputation >= 5000 ? Math.floor((reputation - 4000) / 200) : Math.floor((reputation % 1000) / 200) + 1;
+  const stars = rankIndex;
+  const levelName = RANK_NAMES[rankIndex];
 
   // Spotlight rect for 2nd patient (index 1)
   const spotlightRect = tutStep === "LOBBY_TAP" ? {
@@ -225,13 +229,24 @@ export default function LobbyScreen() {
           ]}
         >
           <View style={styles.dutyInfo}>
-            <Text style={styles.dutyLabel}>On Duty:</Text>
-            <Text style={styles.dutyName}>Dr {doctorName || "Unknown"}</Text>
+            <TouchableOpacity
+              onPress={() => { playTap(); navigation.navigate("Start", { fromLobby: true }); }}
+              style={styles.exitBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="exit-outline" size={22} color="#FFF8EE" />
+            </TouchableOpacity>
+            <View>
+              <Text style={styles.dutyLabel}>On Duty:</Text>
+              <Text style={styles.dutyName}>Dr {doctorName || "Unknown"}</Text>
+            </View>
           </View>
 
           <View style={styles.topRight}>
-            <View style={styles.repBadge}>
-              {[1, 2, 3, 4, 5].map((i) => (
+            <View style={styles.repColumn}>
+              <Text style={styles.levelLabel}>{levelName} {rankLevel}</Text>
+              <View style={styles.repBadge}>
+                {[1, 2, 3, 4, 5].map((i) => (
                 <Ionicons
                   key={i}
                   name={i <= stars ? "star" : "star-outline"}
@@ -239,17 +254,11 @@ export default function LobbyScreen() {
                   color={i <= stars ? "#FFD700" : "rgba(255,255,255,0.4)"}
                 />
               ))}
+              </View>
             </View>
             <CoinDisplay />
           </View>
         </Animated.View>
-
-        {/* Game name banner */}
-        <Image
-          source={require("../assets/images/GameName.png")}
-          style={styles.gameName}
-          resizeMode="contain"
-        />
 
         {/* Action buttons */}
         <View style={[styles.actionRow, { paddingBottom: insets.bottom }]}>
@@ -267,6 +276,12 @@ export default function LobbyScreen() {
             style={styles.actionBtn}
           >
             <Ionicons name="construct" size={20} color="#FFF8EE" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => { playTap(); navigation.navigate("MonsterCollection"); }}
+            style={styles.actionBtn}
+          >
+            <Ionicons name="paw" size={20} color="#FFF8EE" />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => { playTap(); navigation.navigate("Profile"); }}
@@ -320,7 +335,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
   },
   dutyInfo: {
-    flexDirection: "column",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  exitBtn: {
+    marginRight: 10,
+    padding: 4,
   },
   dutyLabel: {
     fontSize: 11,
@@ -332,13 +352,6 @@ const styles = StyleSheet.create({
     fontWeight: "700" as const,
     color: "#FFF8EE",
   },
-  gameName: {
-    width: W * 0.75*1.5,
-    height: W * 0.55*1.5,
-    alignSelf: "center",
-    marginTop: -350,
-    zIndex: 10,
-  },
   topRight: {
     flexDirection: "row",
     alignItems: "center",
@@ -347,6 +360,16 @@ const styles = StyleSheet.create({
   repBadge: {
     flexDirection: "row",
     gap: 2,
+  },
+  repColumn: {
+    alignItems: "center",
+  },
+  levelLabel: {
+    fontSize: 11,
+    fontWeight: "700" as const,
+    color: "#FFD700",
+    textAlign: "center",
+    marginBottom: 1,
   },
   actionRow: {
     flexDirection: "row",

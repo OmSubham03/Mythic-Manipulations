@@ -7,7 +7,7 @@ interface ReputationDisplayProps {
 }
 
 export default function ReputationDisplay({ value }: ReputationDisplayProps) {
-  const stars = Math.round((value / 100) * 5);
+  const stars = Math.round((value / 5000) * 5);
 
   return (
     <View style={styles.container}>

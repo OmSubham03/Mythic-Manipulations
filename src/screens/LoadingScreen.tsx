@@ -74,7 +74,7 @@ export default function LoadingScreen() {
 
     // Navigate after 5 seconds
     const timer = setTimeout(() => {
-      navigation.reset({ index: 0, routes: [{ name: "Lobby" }] });
+      navigation.reset({ index: 0, routes: [{ name: "Start" }] });
     }, 5000);
 
     return () => {

@@ -6,6 +6,28 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import DeviceInfo from "react-native-device-info";
+import { Platform } from "react-native";
+
+export interface TreatmentRecord {
+  patientType: string;
+  ailments: string[];
+  timestamp: number;
+}
+
+export interface DeviceMetadata {
+  deviceId: string;
+  model: string;
+  brand: string;
+  systemName: string;
+  systemVersion: string;
+  appVersion: string;
+  buildNumber: string;
+  deviceType: string;
+  isEmulator: boolean;
+  firstInstallTime: number;
+  lastUpdateTime: number;
+}
 
 interface GameState {
   coins: number;
@@ -15,7 +37,10 @@ interface GameState {
   ownedUpgrades: string[];
   totalCrackCount: number;
   doctorName: string;
+  avatarIndex: number;
   tutorialComplete: boolean;
+  treatmentHistory: TreatmentRecord[];
+  deviceInfo: DeviceMetadata | null;
 }
 
 interface GameContextValue extends GameState {
@@ -23,12 +48,13 @@ interface GameContextValue extends GameState {
   spendCoins: (amount: number) => boolean;
   addReputation: (amount: number) => void;
   loseReputation: (amount: number) => void;
-  recordTreatment: (success: boolean) => void;
+  recordTreatment: (success: boolean, patientType?: string, ailments?: string[]) => void;
   recordCrack: () => void;
   purchaseUpgrade: (upgradeId: string, cost: number) => boolean;
   hasUpgrade: (upgradeId: string) => boolean;
   updateHighScore: (score: number) => void;
   setDoctorName: (name: string) => void;
+  setAvatarIndex: (index: number) => void;
   completeTutorial: () => void;
   resetTutorial: () => void;
 }
@@ -39,14 +65,40 @@ const STORAGE_KEY = "@mythic_game_state";
 
 const DEFAULT_STATE: GameState = {
   coins: 150,
-  reputation: 50,
+  reputation: 0,
   completedTreatments: 0,
   highScore: 0,
   ownedUpgrades: [],
   totalCrackCount: 0,
   doctorName: "",
+  avatarIndex: 0,
   tutorialComplete: false,
+  treatmentHistory: [],
+  deviceInfo: null,
 };
+
+async function collectDeviceInfo(): Promise<DeviceMetadata> {
+  const [deviceId, isEmulator, firstInstall, lastUpdate, deviceType] = await Promise.all([
+    DeviceInfo.getUniqueId(),
+    DeviceInfo.isEmulator(),
+    DeviceInfo.getFirstInstallTime(),
+    DeviceInfo.getLastUpdateTime(),
+    DeviceInfo.getDeviceType(),
+  ]);
+  return {
+    deviceId,
+    model: DeviceInfo.getModel(),
+    brand: DeviceInfo.getBrand(),
+    systemName: DeviceInfo.getSystemName(),
+    systemVersion: DeviceInfo.getSystemVersion(),
+    appVersion: DeviceInfo.getVersion(),
+    buildNumber: DeviceInfo.getBuildNumber(),
+    deviceType,
+    isEmulator,
+    firstInstallTime: firstInstall,
+    lastUpdateTime: lastUpdate,
+  };
+}
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<GameState>(DEFAULT_STATE);
@@ -63,6 +115,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       .catch(() => {})
       .finally(() => setLoaded(true));
   }, []);
+
+  // Collect device info once on first load
+  useEffect(() => {
+    if (!loaded) return;
+    collectDeviceInfo()
+      .then((info) => {
+        setState((prev) => {
+          const next = { ...prev, deviceInfo: info };
+          AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
+          return next;
+        });
+      })
+      .catch(() => {});
+  }, [loaded]);
 
   const save = useCallback((newState: GameState) => {
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newState)).catch(() => {});
@@ -105,7 +171,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     (amount: number) => {
       updateState((prev) => ({
         ...prev,
-        reputation: Math.min(100, prev.reputation + amount),
+        reputation: prev.reputation + amount,
       }));
     },
     [updateState]
@@ -122,13 +188,26 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   );
 
   const recordTreatment = useCallback(
-    (success: boolean) => {
-      updateState((prev) => ({
-        ...prev,
-        completedTreatments: success
-          ? prev.completedTreatments + 1
-          : prev.completedTreatments,
-      }));
+    (success: boolean, patientType?: string, ailments?: string[]) => {
+      updateState((prev) => {
+        const next = {
+          ...prev,
+          completedTreatments: success
+            ? prev.completedTreatments + 1
+            : prev.completedTreatments,
+        };
+        if (success && patientType) {
+          next.treatmentHistory = [
+            ...prev.treatmentHistory,
+            {
+              patientType,
+              ailments: ailments || [],
+              timestamp: Date.now(),
+            },
+          ];
+        }
+        return next;
+      });
     },
     [updateState]
   );
@@ -183,6 +262,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [updateState]
   );
 
+  const setAvatarIndex = useCallback(
+    (index: number) => {
+      updateState((prev) => ({ ...prev, avatarIndex: index }));
+    },
+    [updateState]
+  );
+
   const completeTutorial = useCallback(() => {
     updateState((prev) => ({ ...prev, tutorialComplete: true }));
   }, [updateState]);
@@ -207,6 +293,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         hasUpgrade,
         updateHighScore,
         setDoctorName,
+        setAvatarIndex,
         completeTutorial,
         resetTutorial,
       }}

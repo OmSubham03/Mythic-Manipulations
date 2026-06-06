@@ -32,7 +32,7 @@ export default function CoinDisplay({ coins: coinsProp, burst }: CoinDisplayProp
 
   return (
     <View style={styles.container}>
-      <Ionicons name="star" size={16} color="#FFD700" />
+      <Ionicons name="cash-outline" size={16} color="#FFD700" />
       <Text style={styles.coins}>{displayCoins}</Text>
       {burst != null && burst > 0 && (
         <Animated.Text

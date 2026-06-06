@@ -21,11 +21,14 @@ import Svg, { Defs, RadialGradient, Stop, Ellipse } from "react-native-svg";
 import CrackEffect from "../components/CrackEffect";
 import PatienceBar from "../components/PatienceBar";
 import PatientSVGModel from "../components/PatientSVGModel";
+import ResultPopup from "../components/ResultPopup";
 import TutorialOverlay, { TutorialStep } from "../components/TutorialOverlay";
+import { MiniGameRouter } from "../components/MiniGames";
 // import XrayOverlay from "../components/XrayOverlay";
 import { useGame } from "../context/GameContext";
 import { useCrackSound } from "../hooks/useCrackSound";
 import PATIENTS, { AilmentType, PatientConfig } from "../constants/patients";
+import type { MiniGameType } from "../constants/patients";
 import type { RootStackParamList } from "../navigation/AppNavigator";
 
 const { width: W, height: H } = Dimensions.get("window");
@@ -50,12 +53,7 @@ type Phase = "ENTERING" | "SELECTING" | "ZOOMING_IN" | "TREATING" | "ZOOMING_OUT
 
 interface CrackState { visible: boolean; label: string; x: number; y: number }
 
-const GESTURE_LABELS: Record<string, string> = {
-  DRAG_UP: "Drag ↑",
-  DRAG_DOWN: "Drag ↓",
-  DRAG_HORIZONTAL: "Drag ↔",
-  TAP_RAPID: "Tap fast!",
-};
+
 
 function triggerHaptic(type: "impact" | "notification" = "impact") {
   try {
@@ -93,6 +91,10 @@ export default function TreatmentScreen() {
   const [combo, setCombo] = useState(1);
   const [progress, setProgress] = useState(0);
   const [crack, setCrack] = useState<CrackState>({ visible: false, label: "", x: 0, y: 0 });
+
+  // Result popup state
+  const [resultPopup, setResultPopup] = useState<{ visible: boolean; success: boolean; message: string; coins: number; rep: number }>({ visible: false, success: true, message: "", coins: 0, rep: 0 });
+  const totalCoinsRef = useRef(0);
 
   // Tutorial state
   const [tutStep, setTutStep] = useState<TutorialStep>("HIDDEN");
@@ -220,7 +222,7 @@ export default function TreatmentScreen() {
     if (phaseRef.current === "FAILED" || phaseRef.current === "SUCCESS") return;
     phaseRef.current = "FAILED";
     setPhase("FAILED");
-    loseReputation(15);
+    loseReputation(60);
     recordTreatment(false);
     triggerHaptic("notification");
 
@@ -264,7 +266,7 @@ export default function TreatmentScreen() {
             duration: 400,
             useNativeDriver: true,
           }).start(() => {
-            navigation.reset({ index: 0, routes: [{ name: "Lobby" }] });
+            setResultPopup({ visible: true, success: false, message: `${patient!.name} left unhappy!`, coins: totalCoinsRef.current, rep: -60 });
           });
         }, 3000);
       });
@@ -300,6 +302,7 @@ export default function TreatmentScreen() {
         (hasUpgrade("squeaky_toys") ? 1.2 : 1)
     );
     addCoins(earned);
+    totalCoinsRef.current += earned;
     setCombo((c) => c + 1);
     setProgress(0);
     progressAnim.setValue(0);
@@ -328,8 +331,8 @@ export default function TreatmentScreen() {
   const handleAllDone = useCallback(() => {
     phaseRef.current = "SUCCESS";
     setPhase("SUCCESS");
-    addReputation(12);
-    recordTreatment(true);
+    addReputation(50);
+    recordTreatment(true, patient!.type, patient!.ailments.map(a => a.label));
     triggerSuccessHaptic();
 
     // Stand up: spring zoomAnim to 1 (upright, full size at center)
@@ -356,7 +359,9 @@ export default function TreatmentScreen() {
         // Show tutorial completion nurse dialogue instead of auto-navigating
         setTimeout(() => setTutStep("COMPLETE"), 1800);
       } else {
-        setTimeout(() => navigation.reset({ index: 0, routes: [{ name: "Lobby" }] }), 2800);
+        setTimeout(() => {
+          setResultPopup({ visible: true, success: true, message: `${patient!.name} is all healed!`, coins: totalCoinsRef.current, rep: 50 });
+        }, 2000);
       }
     });
   }, [addReputation, recordTreatment, isTutorial]);
@@ -378,9 +383,8 @@ export default function TreatmentScreen() {
   }
 
   const ailment = patient.ailments[ailmentIdx];
-  // Only enable gesture interaction when fully zoomed in (TREATING)
-  const activeAilmentType: AilmentType | null =
-    phase === "TREATING" ? ailment.type : null;
+  // Disable PatientSVGModel gestures — mini-games handle interaction now
+  const activeAilmentType: AilmentType | null = null;
 
   const progressBarColor = progressAnim.interpolate({
     inputRange: [0, 0.5, 1],
@@ -465,12 +469,7 @@ export default function TreatmentScreen() {
             <Text style={styles.ailmentLabel}>Tap a glowing area to treat</Text>
           </View>
         )}
-        {phase === "TREATING" && (
-          <View style={styles.statusBanner}>
-            <Text style={styles.ailmentLabel}>{ailment.label}</Text>
-            <Text style={styles.gestureHint}>{GESTURE_LABELS[ailment.gesture]}</Text>
-          </View>
-        )}
+
         {phase === "SUCCESS" && (
           <View style={[styles.statusBanner, { backgroundColor: "rgba(104,213,133,0.92)" }]}>
             <Text style={styles.successText}>All healed!</Text>
@@ -575,6 +574,7 @@ export default function TreatmentScreen() {
           width={ZOOM_MODEL_W}
           height={ZOOM_MODEL_H}
           tapCount={ailment?.tapCount ?? 5}
+          mood={phase === "SUCCESS" ? "happy" : phase === "FAILED" ? "angry" : "pain"}
         />
       </Animated.View>
 
@@ -593,13 +593,14 @@ export default function TreatmentScreen() {
         const screenX = BED_CENTER_X + offsetX - dotSize / 2;
         const screenY = BED_CENTER_Y - offsetY - dotSize / 2;
         const isNext = i === ailmentIdx;
+        const isFuture = i > ailmentIdx;
 
         return (
           <TouchableOpacity
             key={a.id}
-            activeOpacity={healed ? 1 : 0.7}
-            onPress={() => !healed && handleSelectAilment(i)}
-            disabled={healed}
+            activeOpacity={isNext ? 0.7 : 1}
+            onPress={() => isNext && handleSelectAilment(i)}
+            disabled={!isNext}
             style={[
               styles.ailmentIndicator,
               {
@@ -608,17 +609,17 @@ export default function TreatmentScreen() {
                 width: dotSize,
                 height: dotSize,
                 borderRadius: dotSize / 2,
-                borderColor: healed ? "#888" : isNext ? patient.glowColor : "#FFD166",
-                opacity: healed ? 0.4 : 1,
+                borderColor: healed ? "#888" : isNext ? patient.glowColor : "rgba(255,209,102,0.35)",
+                opacity: healed ? 0.4 : isFuture ? 0.3 : 1,
               },
             ]}
           >
-            {!healed && (
+            {isNext && (
               <Animated.View
                 style={[
                   styles.ailmentGlow,
                   {
-                    backgroundColor: isNext ? patient.glowColor : "#FFD166",
+                    backgroundColor: patient.glowColor,
                     opacity: glowPulse.interpolate({
                       inputRange: [0, 1],
                       outputRange: [0.3, 0.7],
@@ -632,7 +633,7 @@ export default function TreatmentScreen() {
               <Ionicons
                 name={healed ? "checkmark" : a.type === "NECK" ? "body" : a.type === "BACK" ? "fitness" : a.type === "KNEE" ? "walk" : "hand-left"}
                 size={16}
-                color={healed ? "#888" : "#FFF"}
+                color={healed ? "#888" : isNext ? "#FFF" : "rgba(255,255,255,0.35)"}
               />
             </View>
           </TouchableOpacity>
@@ -678,6 +679,18 @@ export default function TreatmentScreen() {
         glowColor={patient.glowColor}
       /> */}
 
+      {/* Mini-game overlay — shown during TREATING phase */}
+      {phase === "TREATING" && ailment?.miniGame && (
+        <View style={styles.miniGameOverlay}>
+          <MiniGameRouter
+            gameType={ailment.miniGame as MiniGameType}
+            onComplete={handleAilmentComplete}
+            onProgress={handleProgress}
+            accentColor={patient.glowColor}
+          />
+        </View>
+      )}
+
       {/* Crack effect overlay */}
       <CrackEffect
         visible={crack.visible}
@@ -722,17 +735,26 @@ export default function TreatmentScreen() {
                   }
                 : null
           }
-          gestureHint={
-            tutStep === "TREAT_SOLVE" && patient.ailments[ailmentIdx]
-              ? GESTURE_LABELS[patient.ailments[ailmentIdx].gesture]
-              : undefined
-          }
+          gestureHint={undefined}
           onSkip={() => {
             setTutStep("HIDDEN");
             navigation.reset({ index: 0, routes: [{ name: "Lobby" }] });
           }}
         />
       )}
+
+      {/* Result popup — shown after success or failure */}
+      <ResultPopup
+        visible={resultPopup.visible}
+        success={resultPopup.success}
+        message={resultPopup.message}
+        coinsEarned={resultPopup.coins}
+        reputationChange={resultPopup.rep}
+        onDismiss={() => {
+          setResultPopup((p) => ({ ...p, visible: false }));
+          navigation.reset({ index: 0, routes: [{ name: "Lobby" }] });
+        }}
+      />
     </ImageBackground>
   );
 }
@@ -803,7 +825,6 @@ const styles = StyleSheet.create({
     fontSize: 13, fontWeight: "700" as const,
     color: "#FFD166",
   },
-  gestureHint: { fontSize: 12, color: "rgba(255,255,255,0.8)" },
   successText: {
     fontSize: 16, fontWeight: "700" as const,
     color: "#FFF",
@@ -865,4 +886,17 @@ const styles = StyleSheet.create({
   progressFill: { height: "100%", borderRadius: 7 },
 
   /* Angry glow overlay on model */
+
+  /* Mini-game overlay */
+  miniGameOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: H * 0.13,
+    bottom: H * 0.12,
+    zIndex: 20,
+    alignItems: "center",
+    justifyContent: "flex-start",
+    paddingTop: 4,
+  },
 });
