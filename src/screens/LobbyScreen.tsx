@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import Svg, { Defs, Line, LinearGradient, Path, Rect as SvgRect, Stop, Text as SvgText } from "react-native-svg";
 import CoinDisplay from "../components/CoinDisplay";
 import TutorialOverlay, { TutorialStep } from "../components/TutorialOverlay";
 import PATIENTS, { PatientConfig, getRandomPatients } from "../constants/patients";
@@ -45,6 +46,8 @@ const CHAIR_POSITIONS = [
 ];
 
 const SPRITE_SIZE = W * 0.22;
+const SEAT_COSTS = [1000, 1500, 2500];
+const RANK_NAMES = ["Newbie", "Intern", "Junior", "Specialist", "Master", "Legend"];
 
 interface PatientSpriteProps {
   patient: PatientConfig;
@@ -134,13 +137,199 @@ function PatientSprite({ patient, position, delay, onPress }: PatientSpriteProps
   );
 }
 
+/* ---- Digital wall clock (right wall) ---- */
+const CLOCK_W = W * 0.40;
+const CLOCK_H = CLOCK_W * 0.4;
+const CLOCK_DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const CLOCK_MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+
+function DigitalClock() {
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const dayName = CLOCK_DAYS[now.getDay()];
+  const hrs = now.getHours();
+  const ampm = hrs >= 12 ? "PM" : "AM";
+  const h12 = hrs % 12 || 12;
+  const mm = now.getMinutes().toString().padStart(2, "0");
+  const mon = CLOCK_MONTHS[now.getMonth()];
+  const dd = now.getDate();
+  const yyyy = now.getFullYear();
+
+  return (
+    <View
+      style={{
+        position: "absolute",
+        right: W * 0.18,
+        top: H * 0.15,
+        width: CLOCK_W,
+        height: CLOCK_H,
+        transform: [{ perspective: 400 }, { rotateY: "-6deg" }, { rotateZ: "-1deg" }],
+        elevation: 6,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.4,
+        shadowRadius: 6,
+      }}
+    >
+      <Svg width={CLOCK_W} height={CLOCK_H} viewBox="0 0 140 82">
+        <Defs>
+          {/* Outer frame — warm wood base */}
+          <LinearGradient id="frameOuter" x1="0" y1="0" x2="0" y2="82" gradientUnits="userSpaceOnUse">
+            <Stop offset="0%" stopColor="#C49468" />
+            <Stop offset="50%" stopColor="#A87B4E" />
+            <Stop offset="100%" stopColor="#8B6338" />
+          </LinearGradient>
+          {/* Inner bevel — lighter lip */}
+          <LinearGradient id="frameInner" x1="0" y1="0" x2="0" y2="82" gradientUnits="userSpaceOnUse">
+            <Stop offset="0%" stopColor="#D4AD78" />
+            <Stop offset="100%" stopColor="#B88C55" />
+          </LinearGradient>
+          {/* Top-left highlight for 3D bevel */}
+          <LinearGradient id="bevelHL" x1="0" y1="0" x2="140" y2="82" gradientUnits="userSpaceOnUse">
+            <Stop offset="0%" stopColor="#E8CFA0" stopOpacity="0.7" />
+            <Stop offset="50%" stopColor="#E8CFA0" stopOpacity="0" />
+            <Stop offset="100%" stopColor="#5A3D1E" stopOpacity="0.3" />
+          </LinearGradient>
+          {/* Screen inset */}
+          <LinearGradient id="screenBg" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0%" stopColor="#FFF8EE" />
+            <Stop offset="100%" stopColor="#F5E8D4" />
+          </LinearGradient>
+        </Defs>
+
+        {/* Outer frame */}
+        <SvgRect x="0" y="0" width="140" height="82" rx="5" fill="url(#frameOuter)" />
+        {/* Bevel highlight (light top-left, shadow bottom-right) */}
+        <SvgRect x="0" y="0" width="140" height="82" rx="5" fill="url(#bevelHL)" />
+        {/* Outer dark edge */}
+        <SvgRect x="0.5" y="0.5" width="139" height="81" rx="5" fill="none" stroke="#5A3D1E" strokeWidth="1.2" />
+        {/* Top highlight edge */}
+        <Line x1="6" y1="1.2" x2="134" y2="1.2" stroke="#D4B88A" strokeWidth="0.6" opacity="0.6" />
+        {/* Left highlight edge */}
+        <Line x1="1.2" y1="6" x2="1.2" y2="76" stroke="#D4B88A" strokeWidth="0.6" opacity="0.5" />
+
+        {/* Inner golden lip */}
+        <SvgRect x="8" y="7" width="124" height="68" rx="3" fill="url(#frameInner)" />
+        <SvgRect x="8" y="7" width="124" height="68" rx="3" fill="none" stroke="#7A5A35" strokeWidth="0.6" />
+        {/* Inner lip highlight */}
+        <Line x1="12" y1="8" x2="128" y2="8" stroke="#E8CFA0" strokeWidth="0.5" opacity="0.6" />
+
+        {/* Wood grain texture */}
+        <Line x1="4" y1="5" x2="136" y2="5" stroke="#8B6338" strokeWidth="0.3" opacity="0.3" />
+        <Line x1="3" y1="77" x2="137" y2="77" stroke="#8B6338" strokeWidth="0.3" opacity="0.3" />
+        <Line x1="4" y1="3" x2="4" y2="79" stroke="#8B6338" strokeWidth="0.2" opacity="0.2" />
+        <Line x1="136" y1="3" x2="136" y2="79" stroke="#8B6338" strokeWidth="0.2" opacity="0.2" />
+
+        {/* Screen inset */}
+        <SvgRect x="12" y="11" width="116" height="60" rx="2" fill="url(#screenBg)" />
+        <SvgRect x="12" y="11" width="116" height="60" rx="2" fill="none" stroke="#9B7A50" strokeWidth="0.6" />
+
+        {/* AM / PM */}
+        <SvgText x="20" y="40" fontSize="10" fill="#8B6B45" fontWeight="700">
+          {ampm}
+        </SvgText>
+        {/* Time — split so colon always renders */}
+        <SvgText x="74" y="44" fontSize="28" fill="#3D2C1E" fontWeight="800" textAnchor="end">
+          {h12}
+        </SvgText>
+        <SvgText x="79" y="43" fontSize="24" fill="#3D2C1E" fontWeight="800" textAnchor="middle">
+          :
+        </SvgText>
+        <SvgText x="83" y="44" fontSize="28" fill="#3D2C1E" fontWeight="800" textAnchor="start">
+          {mm}
+        </SvgText>
+        {/* Day + Date row */}
+        <SvgText x="28" y="60" fontSize="10" fill="#5A3D1E" fontWeight="700" textAnchor="middle">
+          {dayName}
+        </SvgText>
+        <SvgText x="64" y="60" fontSize="10" fill="#5A3D1E" fontWeight="700" textAnchor="middle">
+          {mon} {dd}
+        </SvgText>
+        <SvgText x="110" y="60" fontSize="10" fill="#5A3D1E" fontWeight="700" textAnchor="middle">
+          {yyyy}
+        </SvgText>
+      </Svg>
+    </View>
+  );
+}
+
+function SeatPlaceholder({ position, type, onPress }: {
+  position: { cx: number; cy: number };
+  type: "locked" | "purchasable";
+  onPress: () => void;
+}) {
+  const isGold = type === "purchasable";
+  const left = position.cx * W - SPRITE_SIZE / 2;
+  const top = position.cy * H - SPRITE_SIZE;
+
+  return (
+    <View style={[styles.spriteWrapper, { left, top, width: SPRITE_SIZE }]}>
+      <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={styles.spriteTouchable}>
+        <View
+          style={[
+            styles.glowRing,
+            {
+              width: SPRITE_SIZE - 30,
+              height: SPRITE_SIZE - 30,
+              borderRadius: (SPRITE_SIZE - 30) / 2,
+              top: 15,
+              left: 15,
+              borderColor: isGold ? "#FFD700" : "#C8C8C8",
+              backgroundColor: isGold ? "rgba(255,215,0,0.12)" : "rgba(0,0,0,0.60)",
+              opacity: isGold ? 0.85 : 0.55,
+            },
+          ]}
+        />
+        <View style={styles.placeholderIcon}>
+          <Ionicons
+            name={isGold ? "add-circle" : "lock-closed"}
+            size={24}
+            color={isGold ? "#FFD700" : "#C8C8C8"}
+          />
+        </View>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 export default function LobbyScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { coins, reputation, tutorialComplete, doctorName, completeTutorial, resetTutorial } = useGame();
+  const { coins, reputation, tutorialComplete, doctorName, completeTutorial, resetTutorial, unlockedSeats, unlockSeat } = useGame();
   const { playTap } = useCrackSound();
   const [patients] = useState<PatientConfig[]>(() => getRandomPatients(4));
   const titleAnim = useRef(new Animated.Value(0)).current;
+
+  // Seat popup state
+  const [seatPopup, setSeatPopup] = useState<{
+    visible: boolean;
+    type: "locked" | "buy" | "noCoins";
+    seatIndex: number;
+    cost: number;
+    neededRank: string;
+  }>({ visible: false, type: "locked", seatIndex: 0, cost: 0, neededRank: "" });
+  const popupOpacity = useRef(new Animated.Value(0)).current;
+  const popupScale = useRef(new Animated.Value(0.8)).current;
+
+  const showSeatPopup = useCallback((opts: typeof seatPopup) => {
+    setSeatPopup(opts);
+    Animated.parallel([
+      Animated.timing(popupOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.spring(popupScale, { toValue: 1, tension: 120, friction: 8, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  const hideSeatPopup = useCallback(() => {
+    Animated.timing(popupOpacity, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => {
+      setSeatPopup((p) => ({ ...p, visible: false }));
+      popupScale.setValue(0.8);
+    });
+  }, []);
 
   // Tutorial state
   const [tutStep, setTutStep] = useState<TutorialStep>("HIDDEN");
@@ -200,8 +389,20 @@ export default function LobbyScreen() {
     setTutStep(doctorName ? "CLINIC_INTRO" : "INTRO");
   }, [resetTutorial, doctorName]);
 
-  const RANK_NAMES = ["Newbie", "Intern", "Junior", "Specialist", "Master", "Legend"];
+  const handleSeatPlaceholderPress = useCallback((seatIndex: number, canPurchase: boolean) => {
+    if (tutStep !== "HIDDEN") return;
+    playTap();
+    if (!canPurchase) {
+      const neededRank = RANK_NAMES[unlockedSeats.length];
+      showSeatPopup({ visible: true, type: "locked", seatIndex, cost: 0, neededRank });
+      return;
+    }
+    const cost = SEAT_COSTS[unlockedSeats.length - 1];
+    showSeatPopup({ visible: true, type: "buy", seatIndex, cost, neededRank: "" });
+  }, [tutStep, playTap, unlockedSeats, showSeatPopup]);
+
   const rankIndex = Math.min(5, Math.floor(reputation / 1000));
+  const maxSeats = Math.min(4, rankIndex + 1);
   const rankLevel = reputation >= 5000 ? Math.floor((reputation - 4000) / 200) : Math.floor((reputation % 1000) / 200) + 1;
   const stars = rankIndex;
   const levelName = RANK_NAMES[rankIndex];
@@ -292,16 +493,35 @@ export default function LobbyScreen() {
         </View>
       </View>
 
-      {/* Patient sprites on chairs */}
-      {patients.map((patient, i) => (
-        <PatientSprite
-          key={patient.type + i}
-          patient={patient}
-          position={CHAIR_POSITIONS[i]}
-          delay={i * 120}
-          onPress={() => handlePatientPress(patient, i)}
-        />
-      ))}
+      {/* Digital wall clock */}
+      <DigitalClock />
+
+      {/* Seats — patient sprites or placeholders */}
+      {CHAIR_POSITIONS.map((pos, i) => {
+        const isUnlocked = unlockedSeats.includes(i);
+        const canPurchase = !isUnlocked && unlockedSeats.length < maxSeats;
+
+        if (isUnlocked) {
+          return (
+            <PatientSprite
+              key={`seat-${i}`}
+              patient={patients[i]}
+              position={pos}
+              delay={i * 120}
+              onPress={() => handlePatientPress(patients[i], i)}
+            />
+          );
+        }
+
+        return (
+          <SeatPlaceholder
+            key={`seat-${i}`}
+            position={pos}
+            type={canPurchase ? "purchasable" : "locked"}
+            onPress={() => handleSeatPlaceholderPress(i, canPurchase)}
+          />
+        );
+      })}
 
       {/* Tutorial overlay */}
       <TutorialOverlay
@@ -310,6 +530,75 @@ export default function LobbyScreen() {
         spotlightRect={spotlightRect}
         onSkip={isTutorialRestart.current ? () => setTutStep("HIDDEN") : undefined}
       />
+
+      {/* Seat popup */}
+      {seatPopup.visible && (
+        <View style={seatStyles.overlay}>
+          <TouchableOpacity style={seatStyles.backdrop} activeOpacity={1} onPress={hideSeatPopup} />
+          <Animated.View style={[
+            seatStyles.card,
+            {
+              borderColor: seatPopup.type === "locked" ? "#C8C8C8" : seatPopup.type === "noCoins" ? "#FF5252" : "#FFD700",
+              opacity: popupOpacity,
+              transform: [{ scale: popupScale }],
+            },
+          ]}>
+            {seatPopup.type === "locked" && (
+              <>
+                <Ionicons name="lock-closed" size={32} color="#C8C8C8" style={{ marginBottom: 8 }} />
+                <Text style={[seatStyles.title, { color: "#999" }]}>Seat Locked</Text>
+                <View style={seatStyles.divider} />
+                <Text style={seatStyles.desc}>Reach <Text style={{ fontWeight: "800", color: "#3D2C1E" }}>{seatPopup.neededRank}</Text> rank to unlock more seats!</Text>
+                <TouchableOpacity style={[seatStyles.btn, { backgroundColor: "#C8C8C8" }]} onPress={hideSeatPopup}>
+                  <Text style={seatStyles.btnText}>OK</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            {seatPopup.type === "buy" && (
+              <>
+                <Ionicons name="add-circle" size={32} color="#FFD700" style={{ marginBottom: 8 }} />
+                <Text style={[seatStyles.title, { color: "#B8960C" }]}>Unlock Seat</Text>
+                <View style={seatStyles.divider} />
+                <View style={seatStyles.costRow}>
+                  <Ionicons name="cash-outline" size={20} color="#FFD700" />
+                  <Text style={seatStyles.costLabel}>Cost</Text>
+                  <Text style={seatStyles.costValue}>{seatPopup.cost}</Text>
+                </View>
+                <View style={seatStyles.costRow}>
+                  <Ionicons name="wallet-outline" size={20} color="#3D9E53" />
+                  <Text style={seatStyles.costLabel}>Your coins</Text>
+                  <Text style={[seatStyles.costValue, { color: coins >= seatPopup.cost ? "#3D9E53" : "#CC3333" }]}>{coins}</Text>
+                </View>
+                <View style={seatStyles.btnRow}>
+                  <TouchableOpacity style={[seatStyles.btn, { backgroundColor: "#E8D8C4" }]} onPress={hideSeatPopup}>
+                    <Text style={[seatStyles.btnText, { color: "#3D2C1E" }]}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[seatStyles.btn, { backgroundColor: coins >= seatPopup.cost ? "#FFD700" : "#CCC" }]} onPress={() => {
+                    if (unlockSeat(seatPopup.seatIndex, seatPopup.cost)) {
+                      hideSeatPopup();
+                    } else {
+                      setSeatPopup((p) => ({ ...p, type: "noCoins" }));
+                    }
+                  }}>
+                    <Text style={seatStyles.btnText}>Buy</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+            {seatPopup.type === "noCoins" && (
+              <>
+                <Ionicons name="warning" size={32} color="#FF5252" style={{ marginBottom: 8 }} />
+                <Text style={[seatStyles.title, { color: "#CC3333" }]}>Not Enough Coins</Text>
+                <View style={seatStyles.divider} />
+                <Text style={seatStyles.desc}>You need <Text style={{ fontWeight: "800", color: "#3D2C1E" }}>{seatPopup.cost}</Text> coins to unlock this seat.</Text>
+                <TouchableOpacity style={[seatStyles.btn, { backgroundColor: "#FF5252" }]} onPress={hideSeatPopup}>
+                  <Text style={[seatStyles.btnText, { color: "#FFF" }]}>OK</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </Animated.View>
+        </View>
+      )}
     </ImageBackground>
   );
 }
@@ -408,5 +697,93 @@ const styles = StyleSheet.create({
   },
   spriteImage: {
     zIndex: 2,
+  },
+  placeholderIcon: {
+    width: SPRITE_SIZE,
+    height: SPRITE_SIZE,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    zIndex: 2,
+  },
+});
+
+const seatStyles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  card: {
+    width: "78%",
+    backgroundColor: "#FFF8EE",
+    borderRadius: 18,
+    borderWidth: 2,
+    paddingVertical: 22,
+    paddingHorizontal: 24,
+    alignItems: "center",
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "800",
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  divider: {
+    width: "85%",
+    height: 1,
+    backgroundColor: "#E8D8C4",
+    marginVertical: 10,
+  },
+  desc: {
+    fontSize: 14,
+    color: "#6B5B4B",
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 14,
+  },
+  costRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    paddingVertical: 6,
+    gap: 8,
+  },
+  costLabel: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#3D2C1E",
+  },
+  costValue: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#3D2C1E",
+  },
+  btnRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 14,
+  },
+  btn: {
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 14,
+    marginTop: 6,
+    elevation: 2,
+  },
+  btnText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#3D2C1E",
   },
 });

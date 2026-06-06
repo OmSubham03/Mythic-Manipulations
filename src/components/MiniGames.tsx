@@ -422,77 +422,125 @@ const XRAY_SIZE = W * 0.90;
 const XRAY_VB = 200; // SVG viewBox size
 const PIECE_TRAY_H = 80; // height of the tray below the x-ray
 
-// Three missing bone pieces with their target positions in viewBox coords
-const SKELETON_PIECES = [
-  {
-    id: 0,
-    label: "Ribs",
-    // Left rib group
-    path: "M56 62 Q48 58, 42 64 Q38 70, 44 74 L56 72 Z M56 76 Q46 73, 40 78 Q36 84, 42 88 L56 86 Z M56 90 Q48 87, 44 92 Q40 97, 46 100 L56 98 Z",
-    // Target center in viewBox
-    tx: 52,
-    ty: 80,
-    // Bounding box for hit-test (viewBox coords)
-    bx: 36, by: 58, bw: 24, bh: 44,
-  },
-  {
-    id: 1,
-    label: "Spine",
-    // Middle vertebrae section
-    path: "M94 100 L106 100 L108 108 Q106 110, 104 110 L96 110 Q94 110, 92 108 Z M93 112 L107 112 L109 120 Q107 122, 105 122 L95 122 Q93 122, 91 120 Z M94 124 L106 124 L108 132 Q106 134, 104 134 L96 134 Q94 134, 92 132 Z",
-    tx: 100,
-    ty: 117,
-    bx: 89, by: 98, bw: 22, bh: 40,
-  },
-  {
-    id: 2,
-    label: "Pelvis",
-    // Right pelvis wing
-    path: "M106 140 Q116 136, 128 140 Q140 146, 142 158 Q140 166, 132 168 L120 164 Q112 158, 108 150 Z",
-    tx: 124,
-    ty: 154,
-    bx: 104, by: 136, bw: 42, bh: 36,
-  },
-];
-
-// Full skeleton paths (everything except the missing pieces)
-const SKELETON_BASE_PATHS = [
-  // Skull
-  "M86 16 Q78 16, 74 24 Q70 32, 74 38 Q78 42, 86 44 L114 44 Q122 42, 126 38 Q130 32, 126 24 Q122 16, 114 16 Z",
-  // Eye sockets
-  "M88 28 Q86 26, 88 24 Q90 22, 92 24 Q94 26, 92 28 Q90 30, 88 28 Z",
-  "M108 28 Q106 26, 108 24 Q110 22, 112 24 Q114 26, 112 28 Q110 30, 108 28 Z",
-  // Jaw
-  "M90 36 L110 36 L108 40 L92 40 Z",
+// Fixed skeleton parts (always visible regardless of which pieces are missing)
+const FIXED_SKELETON_PATHS = [
   // Neck vertebrae
   "M96 46 L104 46 L105 52 L95 52 Z",
   // Clavicles
-  "M70 56 L96 54 L96 58 L70 60 Z",
-  "M104 54 L130 56 L130 60 L104 58 Z",
+  "M65 56 L96 54 L96 58 L65 60 Z",
+  "M104 54 L135 56 L135 60 L104 58 Z",
   // Sternum
-  "M97 56 L103 56 L103 98 L97 98 Z",
-  // Right ribs (present)
-  "M144 62 Q152 58, 158 64 Q162 70, 156 74 L144 72 Z",
-  "M144 76 Q154 73, 160 78 Q164 84, 158 88 L144 86 Z",
-  "M144 90 Q152 87, 156 92 Q160 97, 154 100 L144 98 Z",
-  // Spine below sternum
+  "M97 56 L103 56 L103 100 L97 100 Z",
+  // Upper spine (behind sternum area)
   "M94 56 L106 56 L108 64 Q106 66, 104 66 L96 66 Q94 66, 92 64 Z",
   "M93 68 L107 68 L109 76 Q107 78, 105 78 L95 78 Q93 78, 91 76 Z",
   "M94 80 L106 80 L108 88 Q106 90, 104 90 L96 90 Q94 90, 92 88 Z",
   "M93 92 L107 92 L109 100 Q107 102, 105 102 L95 102 Q93 102, 91 100 Z",
-  // Left pelvis wing (present)
-  "M94 140 Q84 136, 72 140 Q60 146, 58 158 Q60 166, 68 168 L80 164 Q88 158, 92 150 Z",
   // Sacrum
   "M92 136 L108 136 L106 150 Q104 154, 100 156 Q96 154, 94 150 Z",
-  // Upper arm bones (humerus)
-  "M66 62 L70 62 L68 108 L64 108 Z",
-  "M130 62 L134 62 L136 108 L132 108 Z",
-  // Forearm bones
-  "M62 112 L66 112 L64 150 L60 150 Z",
-  "M134 112 L138 112 L140 150 L136 150 Z",
-  // Femurs
+  // Femurs (always shown)
   "M82 168 L86 168 L84 200 L80 200 Z",
   "M114 168 L118 168 L120 200 L116 200 Z",
+];
+
+// Removable bone pool — 3 are randomly chosen as missing pieces each game
+const REMOVABLE_BONES: {
+  id: string; label: string;
+  basePaths: string[]; piecePath: string;
+  tx: number; ty: number;
+  bx: number; by: number; bw: number; bh: number;
+}[] = [
+  {
+    id: "skull",
+    label: "Skull",
+    basePaths: [
+      "M86 16 Q78 16, 74 24 Q70 32, 74 38 Q78 42, 86 44 L114 44 Q122 42, 126 38 Q130 32, 126 24 Q122 16, 114 16 Z",
+      "M88 28 Q86 26, 88 24 Q90 22, 92 24 Q94 26, 92 28 Q90 30, 88 28 Z",
+      "M108 28 Q106 26, 108 24 Q110 22, 112 24 Q114 26, 112 28 Q110 30, 108 28 Z",
+      "M90 36 L110 36 L108 40 L92 40 Z",
+    ],
+    piecePath: "M86 16 Q78 16, 74 24 Q70 32, 74 38 Q78 42, 86 44 L114 44 Q122 42, 126 38 Q130 32, 126 24 Q122 16, 114 16 Z M88 28 Q86 26, 88 24 Q90 22, 92 24 Q94 26, 92 28 Q90 30, 88 28 Z M108 28 Q106 26, 108 24 Q110 22, 112 24 Q114 26, 112 28 Q110 30, 108 28 Z M90 36 L110 36 L108 40 L92 40 Z",
+    tx: 100, ty: 30,
+    bx: 68, by: 14, bw: 64, bh: 34,
+  },
+  {
+    id: "left_ribs",
+    label: "L. Ribs",
+    basePaths: [
+      "M97 63 Q78 56, 58 64 Q52 68, 56 72 Q78 68, 97 73 Z",
+      "M97 77 Q76 70, 56 78 Q50 82, 54 86 Q76 82, 97 87 Z",
+      "M97 91 Q74 84, 54 92 Q48 96, 52 100 Q74 96, 97 101 Z",
+    ],
+    piecePath: "M97 63 Q78 56, 58 64 Q52 68, 56 72 Q78 68, 97 73 Z M97 77 Q76 70, 56 78 Q50 82, 54 86 Q76 82, 97 87 Z M97 91 Q74 84, 54 92 Q48 96, 52 100 Q74 96, 97 101 Z",
+    tx: 75, ty: 82,
+    bx: 46, by: 54, bw: 54, bh: 50,
+  },
+  {
+    id: "right_ribs",
+    label: "R. Ribs",
+    basePaths: [
+      "M103 63 Q122 56, 142 64 Q148 68, 144 72 Q122 68, 103 73 Z",
+      "M103 77 Q124 70, 144 78 Q150 82, 146 86 Q124 82, 103 87 Z",
+      "M103 91 Q126 84, 146 92 Q152 96, 148 100 Q126 96, 103 101 Z",
+    ],
+    piecePath: "M103 63 Q122 56, 142 64 Q148 68, 144 72 Q122 68, 103 73 Z M103 77 Q124 70, 144 78 Q150 82, 146 86 Q124 82, 103 87 Z M103 91 Q126 84, 146 92 Q152 96, 148 100 Q126 96, 103 101 Z",
+    tx: 125, ty: 82,
+    bx: 100, by: 54, bw: 54, bh: 50,
+  },
+  {
+    id: "lower_spine",
+    label: "Spine",
+    basePaths: [
+      "M94 104 L106 104 L108 112 Q106 114, 104 114 L96 114 Q94 114, 92 112 Z",
+      "M93 116 L107 116 L109 124 Q107 126, 105 126 L95 126 Q93 126, 91 124 Z",
+      "M94 128 L106 128 L108 136 Q106 138, 104 138 L96 138 Q94 138, 92 136 Z",
+    ],
+    piecePath: "M94 104 L106 104 L108 112 Q106 114, 104 114 L96 114 Q94 114, 92 112 Z M93 116 L107 116 L109 124 Q107 126, 105 126 L95 126 Q93 126, 91 124 Z M94 128 L106 128 L108 136 Q106 138, 104 138 L96 138 Q94 138, 92 136 Z",
+    tx: 100, ty: 121,
+    bx: 89, by: 102, bw: 22, bh: 40,
+  },
+  {
+    id: "left_pelvis",
+    label: "L. Hip",
+    basePaths: [
+      "M94 140 Q84 136, 72 140 Q60 146, 58 158 Q60 166, 68 168 L80 164 Q88 158, 92 150 Z",
+    ],
+    piecePath: "M94 140 Q84 136, 72 140 Q60 146, 58 158 Q60 166, 68 168 L80 164 Q88 158, 92 150 Z",
+    tx: 76, ty: 154,
+    bx: 56, by: 134, bw: 40, bh: 38,
+  },
+  {
+    id: "right_pelvis",
+    label: "R. Hip",
+    basePaths: [
+      "M106 140 Q116 136, 128 140 Q140 146, 142 158 Q140 166, 132 168 L120 164 Q112 158, 108 150 Z",
+    ],
+    piecePath: "M106 140 Q116 136, 128 140 Q140 146, 142 158 Q140 166, 132 168 L120 164 Q112 158, 108 150 Z",
+    tx: 124, ty: 154,
+    bx: 104, by: 134, bw: 42, bh: 38,
+  },
+  {
+    id: "left_arm",
+    label: "L. Arm",
+    basePaths: [
+      "M63 62 L67 62 L65 108 L61 108 Z",
+      "M59 112 L63 112 L61 152 L57 152 Z",
+    ],
+    piecePath: "M63 62 L67 62 L65 108 L61 108 Z M59 112 L63 112 L61 152 L57 152 Z",
+    tx: 62, ty: 107,
+    bx: 55, by: 60, bw: 16, bh: 96,
+  },
+  {
+    id: "right_arm",
+    label: "R. Arm",
+    basePaths: [
+      "M133 62 L137 62 L139 108 L135 108 Z",
+      "M137 112 L141 112 L143 152 L139 152 Z",
+    ],
+    piecePath: "M133 62 L137 62 L139 108 L135 108 Z M137 112 L141 112 L143 152 L139 152 Z",
+    tx: 138, ty: 107,
+    bx: 131, by: 60, bw: 16, bh: 96,
+  },
 ];
 
 // Tray positions for the 3 pieces (pixel coords below the x-ray)
@@ -508,13 +556,27 @@ export function DragAlignGame({
 }: MiniGameProps) {
   const SNAP_DIST = XRAY_SIZE * 0.1; // snap threshold in pixels
 
+  // Pick 3 random pieces on mount
+  const [selectedPieces] = useState(() => {
+    const shuffled = [...REMOVABLE_BONES].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 3);
+  });
+  const selectedRef = useRef(selectedPieces);
+
+  // Compute base skeleton paths: fixed + non-selected removable parts
+  const selectedIds = new Set(selectedPieces.map(p => p.id));
+  const basePaths: string[] = [...FIXED_SKELETON_PATHS];
+  REMOVABLE_BONES.forEach(bone => {
+    if (!selectedIds.has(bone.id)) basePaths.push(...bone.basePaths);
+  });
+
   const [snapped, setSnapped] = useState([false, false, false]);
   const snappedRef = useRef([false, false, false]);
   const doneCountRef = useRef(0);
 
   // Each piece's animated position (offset from its tray start position)
   const drags = useRef(
-    SKELETON_PIECES.map(() => ({
+    [0, 1, 2].map(() => ({
       x: new Animated.Value(0),
       y: new Animated.Value(0),
     }))
@@ -524,7 +586,7 @@ export function DragAlignGame({
   const scale = XRAY_SIZE / XRAY_VB;
 
   const makePanResponder = useCallback((idx: number) => {
-    const piece = SKELETON_PIECES[idx];
+    const piece = selectedRef.current[idx];
     // Target position in pixels (relative to the x-ray top-left)
     const targetPx = piece.tx * scale;
     const targetPy = piece.ty * scale;
@@ -577,7 +639,7 @@ export function DragAlignGame({
     });
   }, [onComplete, onProgress, scale]);
 
-  const panResponders = useRef(SKELETON_PIECES.map((_, i) => makePanResponder(i))).current;
+  const panResponders = useRef([0, 1, 2].map(i => makePanResponder(i))).current;
 
   const allDone = snapped.every(Boolean);
 
@@ -604,19 +666,19 @@ export function DragAlignGame({
             <Rect x="0" y="0" width={XRAY_VB} height={XRAY_VB} fill="url(#xrayVig)" />
 
             {/* Base skeleton (always visible) */}
-            {SKELETON_BASE_PATHS.map((d, i) => (
+            {basePaths.map((d, i) => (
               <Path key={`skel-${i}`} d={d} fill="none" stroke="rgba(180,210,240,0.7)" strokeWidth="1.2" />
             ))}
 
             {/* Missing piece outlines (dashed) */}
-            {SKELETON_PIECES.map((piece) => (
+            {selectedPieces.map((piece, idx) => (
               <Path
-                key={`slot-${piece.id}`}
-                d={piece.path}
-                fill={snapped[piece.id] ? "rgba(120,200,255,0.25)" : "none"}
-                stroke={snapped[piece.id] ? "rgba(120,220,160,0.8)" : "rgba(255,200,100,0.5)"}
+                key={`slot-${idx}`}
+                d={piece.piecePath}
+                fill={snapped[idx] ? "rgba(120,200,255,0.25)" : "none"}
+                stroke={snapped[idx] ? "rgba(120,220,160,0.8)" : "rgba(255,200,100,0.5)"}
                 strokeWidth="1.5"
-                strokeDasharray={snapped[piece.id] ? "0" : "4,3"}
+                strokeDasharray={snapped[idx] ? "0" : "4,3"}
               />
             ))}
           </Svg>
@@ -627,7 +689,7 @@ export function DragAlignGame({
 
         {/* Piece tray */}
         <View style={[xrayStyles.tray, { top: XRAY_SIZE + 18 }]}>
-          {SKELETON_PIECES.map((piece, idx) => {
+          {selectedPieces.map((piece, idx) => {
             if (snapped[idx]) return null;
             const trayX = getPieceTrayX(idx);
             const trayY = PIECE_TRAY_H / 2;
@@ -659,7 +721,7 @@ export function DragAlignGame({
                   viewBox={`${piece.bx} ${piece.by} ${piece.bw} ${piece.bh}`}
                 >
                   <Path
-                    d={piece.path}
+                    d={piece.piecePath}
                     fill="rgba(140,200,255,0.35)"
                     stroke="rgba(180,220,255,0.9)"
                     strokeWidth="1.5"

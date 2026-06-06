@@ -235,7 +235,11 @@ export default function TutorialOverlay({ step, onStepDone, spotlightRect, gestu
 
       {/* Instruction banners for gameplay steps */}
       {(step === "LOBBY_TAP" || step === "TREAT_SELECT" || step === "TREAT_SOLVE") && (
-        <Animated.View style={[styles.instructionBanner, { opacity: fadeAnim }]}>
+        <Animated.View style={[
+          styles.instructionBanner,
+          step === "TREAT_SOLVE" ? { top: undefined, bottom: H * 0.06 } : null,
+          { opacity: fadeAnim },
+        ]}>
           <Ionicons name="hand-left-outline" size={18} color="#FFD166" style={{ marginRight: 8 }} />
           <View>
             <Text style={styles.instructionText}>{dialogueText}</Text>
@@ -260,7 +264,7 @@ function getDialogueText(step: TutorialStep, doctorName: string): string {
     case "TREAT_SELECT":
       return "Tap a glowing area to start treating that ailment.";
     case "TREAT_SOLVE":
-      return "Now perform the gesture to heal!";
+      return "Complete the mini-game to heal!";
     case "COMPLETE":
       return `Well done, Dr. ${doctorName || "Doc"}! You are quite skilled.\n\nLet's treat more patients!`;
     default:

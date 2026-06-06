@@ -728,10 +728,10 @@ export default function TreatmentScreen() {
                 })()
               : tutStep === "TREAT_SOLVE"
                 ? {
-                    x: (W - ZOOM_MODEL_W) / 2,
-                    y: H * 0.48 - ZOOM_MODEL_H / 2,
-                    w: ZOOM_MODEL_W,
-                    h: ZOOM_MODEL_H,
+                    x: 0,
+                    y: H * 0.13,
+                    w: W,
+                    h: H - H * 0.13 - H * 0.12,
                   }
                 : null
           }

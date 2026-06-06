@@ -40,6 +40,7 @@ interface GameState {
   avatarIndex: number;
   tutorialComplete: boolean;
   treatmentHistory: TreatmentRecord[];
+  unlockedSeats: number[];
   deviceInfo: DeviceMetadata | null;
 }
 
@@ -57,6 +58,7 @@ interface GameContextValue extends GameState {
   setAvatarIndex: (index: number) => void;
   completeTutorial: () => void;
   resetTutorial: () => void;
+  unlockSeat: (seatIndex: number, cost: number) => boolean;
 }
 
 const GameContext = createContext<GameContextValue | null>(null);
@@ -74,6 +76,7 @@ const DEFAULT_STATE: GameState = {
   avatarIndex: 0,
   tutorialComplete: false,
   treatmentHistory: [],
+  unlockedSeats: [1],
   deviceInfo: null,
 };
 
@@ -277,6 +280,25 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     updateState((prev) => ({ ...prev, tutorialComplete: false }));
   }, [updateState]);
 
+  const unlockSeat = useCallback(
+    (seatIndex: number, cost: number): boolean => {
+      let success = false;
+      updateState((prev) => {
+        if (prev.coins >= cost && !prev.unlockedSeats.includes(seatIndex)) {
+          success = true;
+          return {
+            ...prev,
+            coins: prev.coins - cost,
+            unlockedSeats: [...prev.unlockedSeats, seatIndex],
+          };
+        }
+        return prev;
+      });
+      return success;
+    },
+    [updateState]
+  );
+
   if (!loaded) return null;
 
   return (
@@ -296,6 +318,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         setAvatarIndex,
         completeTutorial,
         resetTutorial,
+        unlockSeat,
       }}
     >
       {children}
