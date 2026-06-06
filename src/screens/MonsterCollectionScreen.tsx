@@ -169,6 +169,11 @@ function getMonsterIcon(type: string): string {
     case "MOON_BUNNY": return "🐰";
     case "SNOW_LION": return "🦁";
     case "GREEN_DEER": return "🌿";
+    case "SAND_SCARAB": return "🪲";
+    case "CLOUD_SHEEP": return "🐑";
+    case "SHADOW_FOX": return "🦊";
+    case "CORAL_TURTLE": return "🐢";
+    case "EMBER_OWL": return "🦉";
     default: return "❓";
   }
 }

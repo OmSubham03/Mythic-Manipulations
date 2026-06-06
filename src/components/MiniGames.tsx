@@ -2203,8 +2203,8 @@ export function FindPathGame({
               const cpReached = i <= lastCheckpoint;
               return (
                 <React.Fragment key={`wp-${i}`}>
-                  <Circle cx={wp.x} cy={wp.y} r={CELL_W * 0.28} fill={cpReached ? "rgba(100,220,150,0.5)" : "rgba(255,255,255,0.2)"} />
-                  <Circle cx={wp.x} cy={wp.y} r={CELL_W * 0.15} fill={cpReached ? "#4ADE80" : "#FFFFFF"} opacity={cpReached ? 1 : 0.5} />
+                  <Circle cx={wp.x} cy={wp.y} r={CELL_W * 0.62} fill={cpReached ? "rgba(100,220,150,0.5)" : "rgba(255,255,255,0.2)"} />
+                  <Circle cx={wp.x} cy={wp.y} r={CELL_W * 0.42} fill={cpReached ? "#4ADE80" : "#FFFFFF"} opacity={cpReached ? 1 : 0.5} />
                   <Path
                     d={cpReached
                       ? `M${wp.x - 4},${wp.y} L${wp.x - 1},${wp.y + 4} L${wp.x + 5},${wp.y - 3}`
@@ -2223,8 +2223,8 @@ export function FindPathGame({
           })}
 
           {/* Start node */}
-          <Circle cx={startPx.x} cy={startPx.y} r={CELL_W * 0.35} fill="url(#startGlow)" />
-          <Circle cx={startPx.x} cy={startPx.y} r={CELL_W * 0.18} fill="#FFD700" />
+          <Circle cx={startPx.x} cy={startPx.y} r={CELL_W * 0.62} fill="url(#startGlow)" />
+          <Circle cx={startPx.x} cy={startPx.y} r={CELL_W * 0.42} fill="#FFD700" />
           {/* Start arrow */}
           <Path
             d={`M${startPx.x - 5},${startPx.y - 5} L${startPx.x + 5},${startPx.y} L${startPx.x - 5},${startPx.y + 5} Z`}
@@ -2232,8 +2232,8 @@ export function FindPathGame({
           />
 
           {/* End node */}
-          <Circle cx={endPx.x} cy={endPx.y} r={CELL_W * 0.35} fill="url(#endGlow)" />
-          <Circle cx={endPx.x} cy={endPx.y} r={CELL_W * 0.18} fill="#4ADE80" />
+          <Circle cx={endPx.x} cy={endPx.y} r={CELL_W * 0.62} fill="url(#endGlow)" />
+          <Circle cx={endPx.x} cy={endPx.y} r={CELL_W * 0.42} fill="#4ADE80" />
           {/* End arrow */}
           <Path
             d={`M${endPx.x - 5},${endPx.y - 5} L${endPx.x + 5},${endPx.y} L${endPx.x - 5},${endPx.y + 5} Z`}
@@ -2262,7 +2262,7 @@ const mazeStyles = StyleSheet.create({
  * ==================================================================== */
 const EYE_SIZE = W * 0.90;
 const EYE_VB_W = 200;
-const EYE_VB_H = 280;
+const EYE_VB_H = 200;
 const SLIDER_W = EYE_SIZE * 0.85;
 const SLIDER_H = 44;
 const THUMB_R = 18;
@@ -2270,19 +2270,25 @@ const SNAP_STEPS = 20; // slider granularity
 
 // Chart rows — larger letters on top (like a real Snellen chart)
 const CHART_ROWS = [
-  { letters: "E", fontSize: 48, y: 48 },
-  { letters: "F  H", fontSize: 34, y: 88 },
-  { letters: "E  N  T", fontSize: 26, y: 120 },
-  { letters: "T  N  H  L", fontSize: 20, y: 148 },
-  { letters: "L E F N H", fontSize: 15, y: 172 },
-  { letters: "Z L P O H F", fontSize: 12, y: 192 },
-  { letters: "P E C F D", fontSize: 10, y: 208 },
+  { letters: "E", fontSize: 38, y: 38 },
+  { letters: "F  H", fontSize: 28, y: 68 },
+  { letters: "E  N  T", fontSize: 22, y: 92 },
+  { letters: "T  N  H  L", fontSize: 17, y: 114 },
+  { letters: "L E F N H", fontSize: 13, y: 132 },
+  { letters: "Z L P O H F", fontSize: 10, y: 148 },
+  { letters: "P E C F D", fontSize: 9, y: 162 },
 ];
 
 // The correct slider position (0‒1) for each eye — randomised per game
 function randomTarget(): number {
-  // Pick a value in the 0.25–0.75 range so it's not trivially at an edge
+  // Pick a value away from the edges
   return 0.25 + Math.random() * 0.5;
+}
+
+/** Pick initial slider value guaranteed to be far from the target */
+function initialSlider(target: number): number {
+  // Start at the opposite end from the target so blur is always high
+  return target < 0.5 ? 0.85 : 0.15;
 }
 
 /** Compute blur amount (0 = sharp, 1 = max blur) given current slider val and target */
@@ -2297,7 +2303,7 @@ export function EyeTestGame({
 }: MiniGameProps) {
   const [targets] = useState(() => ({ left: randomTarget(), right: randomTarget() }));
   const [activeEye, setActiveEye] = useState<"LEFT" | "RIGHT">("LEFT");
-  const [sliderVal, setSliderVal] = useState(0.5);
+  const [sliderVal, setSliderVal] = useState(() => initialSlider(targets.left));
   const [leftLocked, setLeftLocked] = useState(false);
   const [rightLocked, setRightLocked] = useState(false);
   const [done, setDone] = useState(false);
@@ -2321,7 +2327,7 @@ export function EyeTestGame({
     if (activeEye === "LEFT") {
       setLeftLocked(true);
       setActiveEye("RIGHT");
-      setSliderVal(0.5); // reset slider for the other eye
+      setSliderVal(initialSlider(targets.right)); // reset slider for the other eye
     } else {
       setRightLocked(true);
       setDone(true);
@@ -2368,9 +2374,9 @@ export function EyeTestGame({
 
   // Lens clipping mask dimensions
   const LENS_CX = EYE_VB_W / 2;
-  const LENS_CY = EYE_VB_H * 0.42;
-  const LENS_RX = 72;
-  const LENS_RY = 56;
+  const LENS_CY = EYE_VB_H * 0.48;
+  const LENS_RX = 62;
+  const LENS_RY = 46;
 
   return (
     <View style={gStyles.center}>
@@ -2394,8 +2400,8 @@ export function EyeTestGame({
       </Text>
 
       {/* Chart + lens area */}
-      <View style={{ width: EYE_SIZE, height: EYE_SIZE * (EYE_VB_H / EYE_VB_W), overflow: "hidden", borderRadius: 16, backgroundColor: "#F5F0E8" }}>
-        <Svg width={EYE_SIZE} height={EYE_SIZE * (EYE_VB_H / EYE_VB_W)} viewBox={`0 0 ${EYE_VB_W} ${EYE_VB_H}`}>
+      <View style={{ width: EYE_SIZE, height: EYE_SIZE, overflow: "hidden", borderRadius: 16, backgroundColor: "#F5F0E8" }}>
+        <Svg width={EYE_SIZE} height={EYE_SIZE} viewBox={`0 0 ${EYE_VB_W} ${EYE_VB_H}`}>
           <Defs>
             {/* Lens-shaped clip */}
             <SvgEllipse id="lensClip" cx={LENS_CX} cy={LENS_CY} rx={LENS_RX} ry={LENS_RY} />
@@ -2412,14 +2418,14 @@ export function EyeTestGame({
           </Defs>
 
           {/* Chart frame (hanging poster style) */}
-          <Rect x={15} y={12} width={EYE_VB_W - 30} height={EYE_VB_H - 50} rx={4} fill="#2A2A2A" />
-          <Rect x={18} y={15} width={EYE_VB_W - 36} height={EYE_VB_H - 56} rx={3} fill="url(#chartBg)" />
+          <Rect x={15} y={12} width={EYE_VB_W - 30} height={EYE_VB_H - 32} rx={4} fill="#2A2A2A" />
+          <Rect x={18} y={15} width={EYE_VB_W - 36} height={EYE_VB_H - 38} rx={3} fill="url(#chartBg)" />
 
           {/* Hanging string */}
           <Path d={`M${EYE_VB_W / 2 - 20},12 L${EYE_VB_W / 2},3 L${EYE_VB_W / 2 + 20},12`} stroke="#8B2020" strokeWidth={1.8} fill="none" />
           <Circle cx={EYE_VB_W / 2} cy={3} r={2.5} fill="#AAAAAA" />
 
-          {/* Chart letters */}
+          {/* Chart letters — always blurry (naked eye) */}
           {CHART_ROWS.map((row, i) => (
             <SvgText
               key={i}
@@ -2430,23 +2436,18 @@ export function EyeTestGame({
               fontWeight="900"
               fill="#1A1A1A"
               fontFamily="monospace"
-              letterSpacing={letterSpread}
-              opacity={1 - blurOpacity * 0.4}
+              letterSpacing={3}
+              opacity={0.6}
             >
               {row.letters}
             </SvgText>
           ))}
 
-          {/* Blur overlay — semi-transparent white rectangles layered to simulate defocus */}
-          {blur > 0.02 && (
-            <>
-              <Rect x={18} y={15} width={EYE_VB_W - 36} height={EYE_VB_H - 56} rx={3}
-                fill="white" opacity={blurOpacity * 0.55} />
-              {/* Secondary "smear" rects offset slightly for more blur feel */}
-              <Rect x={16} y={13} width={EYE_VB_W - 32} height={EYE_VB_H - 52} rx={5}
-                fill="white" opacity={blurOpacity * 0.25} />
-            </>
-          )}
+          {/* Full blur overlay — naked eye is always blurry */}
+          <Rect x={18} y={15} width={EYE_VB_W - 36} height={EYE_VB_H - 38} rx={3}
+            fill="white" opacity={0.5} />
+          <Rect x={16} y={13} width={EYE_VB_W - 32} height={EYE_VB_H - 34} rx={5}
+            fill="white" opacity={0.22} />
 
           {/* Lens / glasses frame overlay */}
           {/* Lens border */}
@@ -2461,18 +2462,18 @@ export function EyeTestGame({
           <Line x1={LENS_CX + LENS_RX + 4} y1={LENS_CY - 8} x2={EYE_VB_W - 8} y2={LENS_CY - 22}
             stroke="#2A2A2A" strokeWidth={4} strokeLinecap="round" />
 
-          {/* Clear area inside lens — re-draw chart letters without blur inside an SVG clip */}
-          {blur > 0.02 && !done && (
+          {/* Inside lens — slider-controlled clarity */}
+          {!done && (
             <>
-              {/* Clip rect over lens area to show clear text */}
+              {/* Lens background */}
               <SvgEllipse cx={LENS_CX} cy={LENS_CY} rx={LENS_RX - 2} ry={LENS_RY - 2}
                 fill="url(#chartBg)" />
+              {/* Redraw chart letters inside lens with slider-controlled blur */}
               {CHART_ROWS.map((row, i) => {
-                // Only render rows that intersect the lens area
                 if (row.y < LENS_CY - LENS_RY - row.fontSize || row.y > LENS_CY + LENS_RY + 5) return null;
                 return (
                   <SvgText
-                    key={`clear-${i}`}
+                    key={`lens-${i}`}
                     x={EYE_VB_W / 2}
                     y={row.y}
                     textAnchor="middle"
@@ -2480,14 +2481,19 @@ export function EyeTestGame({
                     fontWeight="900"
                     fill="#1A1A1A"
                     fontFamily="monospace"
-                    clipPath=""
+                    letterSpacing={letterSpread}
+                    opacity={1 - blurOpacity * 0.4}
                   >
                     {row.letters}
                   </SvgText>
                 );
               })}
-              {/* Masking ring to clip the clear text to the lens shape */}
-              {/* Use a donut — large rect with ellipse hole via even-odd */}
+              {/* Blur overlay inside lens — controlled by slider */}
+              {blur > 0.02 && (
+                <SvgEllipse cx={LENS_CX} cy={LENS_CY} rx={LENS_RX - 2} ry={LENS_RY - 2}
+                  fill="white" opacity={blurOpacity * 0.5} />
+              )}
+              {/* Donut mask — re-cover area outside lens so the clear redrawn text doesn't leak */}
               <Path
                 d={`M0,0 H${EYE_VB_W} V${EYE_VB_H} H0 Z
                    M${LENS_CX},${LENS_CY - LENS_RY + 2}
@@ -2495,7 +2501,7 @@ export function EyeTestGame({
                    A${LENS_RX - 2},${LENS_RY - 2} 0 1,1 ${LENS_CX},${LENS_CY - LENS_RY + 2} Z`}
                 fill="white"
                 fillRule="evenodd"
-                opacity={blurOpacity * 0.55}
+                opacity={0.5}
               />
               <Path
                 d={`M0,0 H${EYE_VB_W} V${EYE_VB_H} H0 Z
@@ -2504,8 +2510,30 @@ export function EyeTestGame({
                    A${LENS_RX - 2},${LENS_RY - 2} 0 1,1 ${LENS_CX},${LENS_CY - LENS_RY + 2} Z`}
                 fill="white"
                 fillRule="evenodd"
-                opacity={blurOpacity * 0.25}
+                opacity={0.22}
               />
+            </>
+          )}
+          {/* When done — show everything clear */}
+          {done && (
+            <>
+              {/* Clear background over entire chart */}
+              <Rect x={18} y={15} width={EYE_VB_W - 36} height={EYE_VB_H - 38} rx={3}
+                fill="url(#chartBg)" />
+              {CHART_ROWS.map((row, i) => (
+                <SvgText
+                  key={`done-${i}`}
+                  x={EYE_VB_W / 2}
+                  y={row.y}
+                  textAnchor="middle"
+                  fontSize={row.fontSize}
+                  fontWeight="900"
+                  fill="#1A1A1A"
+                  fontFamily="monospace"
+                >
+                  {row.letters}
+                </SvgText>
+              ))}
             </>
           )}
 
@@ -2520,7 +2548,7 @@ export function EyeTestGame({
           )}
 
           {/* Active eye label */}
-          <SvgText x={EYE_VB_W / 2} y={EYE_VB_H - 18} textAnchor="middle"
+          <SvgText x={EYE_VB_W / 2} y={EYE_VB_H - 8} textAnchor="middle"
             fontSize={14} fontWeight="700" fill="#5A3D1E">
             {activeEye === "LEFT" ? "◀ LEFT EYE" : "RIGHT EYE ▶"}
           </SvgText>
