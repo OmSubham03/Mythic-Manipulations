@@ -78,12 +78,23 @@ function triggerSuccessHaptic() {
 export default function TreatmentScreen() {
   const route = useRoute<RouteProp<RootStackParamList, "Treatment">>();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { patientType, tutorial: isTutorial } = route.params as { patientType: string; tutorial?: boolean };
+  const { patientType, tutorial: isTutorial, patientData } = route.params as { patientType: string; tutorial?: boolean; patientData?: string };
   const insets = useSafeAreaInsets();
   const { addCoins, loseReputation, addReputation, recordTreatment, recordCrack, hasUpgrade, completeTutorial } = useGame();
   const { playCrack, playPop, playTap } = useCrackSound();
 
-  const patient: PatientConfig | undefined = PATIENTS.find((p) => p.type === patientType);
+  // Use passed patient data (with dynamic level/ailments) or fall back to static lookup
+  const patient: PatientConfig | undefined = (() => {
+    if (patientData) {
+      try {
+        const parsed = JSON.parse(patientData);
+        const base = PATIENTS.find((p) => p.type === patientType);
+        return { ...parsed, image: base?.image } as PatientConfig;
+      } catch { /* fall through */ }
+    }
+    const base = PATIENTS.find((p) => p.type === patientType);
+    return base ? { ...base, level: base.level ?? 1 } : undefined;
+  })();
 
   const [phase, setPhase] = useState<Phase>("ENTERING");
   const [ailmentIdx, setAilmentIdx] = useState(0);
@@ -292,7 +303,7 @@ export default function TreatmentScreen() {
     triggerHaptic("impact");
 
     const ailment = patient.ailments[ailmentIdx];
-    if (ailment.type === "HAND") playPop();
+    if (ailment.type === "EYE" || ailment.type === "TEETH") playPop();
     else playCrack();
 
     const earned = Math.round(
@@ -460,7 +471,7 @@ export default function TreatmentScreen() {
           <View style={[styles.kingdomPill, { backgroundColor: patient.bodyColor + "28", borderColor: patient.bodyColor }]}>
             <Text style={[styles.kingdomText, { color: patient.bodyColor }]}>{patient.kingdom}</Text>
           </View>
-          <Text style={styles.patientName}>{patient.name}</Text>
+          <Text style={styles.patientName}>{patient.name} <Text style={{ fontSize: 12, fontWeight: "600", color: patient.glowColor }}>Lv.{patient.level}</Text></Text>
         </View>
 
         {/* Status banner */}
@@ -631,7 +642,16 @@ export default function TreatmentScreen() {
             )}
             <View style={styles.ailmentIcon}>
               <Ionicons
-                name={healed ? "checkmark" : a.type === "NECK" ? "body" : a.type === "BACK" ? "fitness" : a.type === "KNEE" ? "walk" : "hand-left"}
+                name={healed ? "checkmark" :
+                  a.type === "TEETH" ? "nutrition" :
+                  a.type === "HEAD" ? "skull" :
+                  a.type === "NECK" ? "body" :
+                  a.type === "CHEST" ? "heart" :
+                  a.type === "BACK" ? "fitness" :
+                  a.type === "LEG" ? "walk" :
+                  a.type === "STOMACH" ? "ellipse" :
+                  a.type === "EYE" ? "eye" :
+                  "medkit"}
                 size={16}
                 color={healed ? "#888" : isNext ? "#FFF" : "rgba(255,255,255,0.35)"}
               />

@@ -133,11 +133,16 @@ function scalePath(raw: string, w: number, h: number): string {
 /* ── Pain point zones per ailment type (normalized to tray) ── */
 function zoneFor(type: string) {
   switch (type) {
-    case "NECK": return { cx: 0.5, cy: 0.33, rx: 0.10, ry: 0.04 };
-    case "BACK": return { cx: 0.5, cy: 0.52, rx: 0.14, ry: 0.10 };
-    case "KNEE": return { cx: 0.50, cy: 0.82, rx: 0.10, ry: 0.05 };
-    case "HAND": return { cx: 0.20, cy: 0.50, rx: 0.09, ry: 0.05 };
-    default:     return { cx: 0.5, cy: 0.50, rx: 0.10, ry: 0.08 };
+    case "TEETH": return { cx: 0.5, cy: 0.20, rx: 0.10, ry: 0.05 };
+    case "HEAD":  return { cx: 0.5, cy: 0.18, rx: 0.12, ry: 0.06 };
+    case "NECK":  return { cx: 0.5, cy: 0.33, rx: 0.10, ry: 0.04 };
+    case "CHEST": return { cx: 0.5, cy: 0.42, rx: 0.14, ry: 0.08 };
+    case "BACK":  return { cx: 0.5, cy: 0.52, rx: 0.14, ry: 0.10 };
+    case "LEG":   return { cx: 0.45, cy: 0.78, rx: 0.10, ry: 0.06 };
+    case "STOMACH": return { cx: 0.5, cy: 0.58, rx: 0.12, ry: 0.08 };
+    case "EYE":   return { cx: 0.5, cy: 0.16, rx: 0.08, ry: 0.04 };
+    case "HAND":  return { cx: 0.20, cy: 0.50, rx: 0.09, ry: 0.05 };
+    default:      return { cx: 0.5, cy: 0.50, rx: 0.10, ry: 0.08 };
   }
 }
 

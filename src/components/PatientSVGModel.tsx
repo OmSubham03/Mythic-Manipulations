@@ -249,19 +249,18 @@ export default function PatientSVGModel({
   const handTX       = handWiggle.interpolate({ inputRange: [0, 1], outputRange: [0, 10] });
   const breathScale  = breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.018] });
 
-  const isNeck = activeAilmentType === "NECK";
-  const isBack = activeAilmentType === "BACK";
-  const isKnee = activeAilmentType === "KNEE";
+  const isNeck = activeAilmentType === "NECK" || activeAilmentType === "TEETH" || activeAilmentType === "EYE" || activeAilmentType === "HEAD";
+  const isBack = activeAilmentType === "BACK" || activeAilmentType === "CHEST" || activeAilmentType === "STOMACH";
+  const isKnee = activeAilmentType === "LEG";
   const isHand = activeAilmentType === "HAND";
 
   const zones: Record<string, { x: number; y: number; w: number; h: number }> = {
     GOLEM_NECK:           { x: 82*sx,  y: 118*sy, w: 36*sx,  h: 52*sy  },
     GOLEM_BACK:           { x: 32*sx,  y: 148*sy, w: 136*sx, h: 130*sy },
-    HARPY_HAND:           { x: 4*sx,   y: 105*sy, w: 72*sx,  h: 110*sy },
     HARPY_NECK:           { x: 78*sx,  y: 88*sy,  w: 44*sx,  h: 60*sy  },
+    HARPY_BACK:           { x: 44*sx,  y: 120*sy, w: 112*sx, h: 100*sy },
     EMBER_KITTEN_KNEE:    { x: 58*sx,  y: 258*sy, w: 42*sx,  h: 60*sy  },
     EMBER_KITTEN_BACK:    { x: 36*sx,  y: 140*sy, w: 128*sx, h: 128*sy },
-    ICE_YETI_HAND:        { x: 0,      y: 148*sy, w: 55*sx,  h: 96*sy  },
     ICE_YETI_NECK:        { x: 42*sx,  y: 118*sy, w: 116*sx, h: 50*sy  },
     MUSHROOM_SPRITE_BACK: { x: 68*sx,  y: 124*sy, w: 64*sx,  h: 95*sy  },
     MUSHROOM_SPRITE_KNEE: { x: 58*sx,  y: 275*sy, w: 50*sx,  h: 38*sy  },
@@ -269,7 +268,6 @@ export default function PatientSVGModel({
     MINI_DRAGON_BACK:     { x: 34*sx,  y: 128*sy, w: 132*sx, h: 148*sy },
     CRYSTAL_DEER_NECK:    { x: 84*sx,  y: 143*sy, w: 32*sx,  h: 88*sy  },
     CRYSTAL_DEER_KNEE:    { x: 60*sx,  y: 248*sy, w: 34*sx,  h: 32*sy  },
-    LAVA_BLOB_HAND:       { x: 148*sx, y: 142*sy, w: 52*sx,  h: 108*sy },
     LAVA_BLOB_BACK:       { x: 24*sx,  y: 102*sy, w: 152*sx, h: 185*sy },
     MOON_BUNNY_NECK:      { x: 60*sx,  y: 16*sy,  w: 80*sx,  h: 108*sy },
     MOON_BUNNY_KNEE:      { x: 104*sx, y: 252*sy, w: 52*sx,  h: 68*sy  },

@@ -18,12 +18,24 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Defs, Line, LinearGradient, Path, Rect as SvgRect, Stop, Text as SvgText } from "react-native-svg";
 import CoinDisplay from "../components/CoinDisplay";
 import TutorialOverlay, { TutorialStep } from "../components/TutorialOverlay";
-import PATIENTS, { PatientConfig, getRandomPatients } from "../constants/patients";
+import PATIENTS, { AilmentType, PatientConfig, getRandomPatients } from "../constants/patients";
 import { useGame } from "../context/GameContext";
 import { useCrackSound } from "../hooks/useCrackSound";
 import type { RootStackParamList } from "../navigation/AppNavigator";
 
 const { width: W, height: H } = Dimensions.get("window");
+
+/* ---- Thought bubble phrases keyed by ailment type ---- */
+const THOUGHT_PHRASES: Record<AilmentType, string[]> = {
+  TEETH:   ["Ow, my tooth!", "This toothache is killing me!", "Something's stuck in my teeth…"],
+  HEAD:    ["Ah! This headache…", "My head is throbbing!", "Everything is spinning…"],
+  NECK:    ["My neck won't turn!", "Ouch, stiff neck…", "Can't look sideways!"],
+  CHEST:   ["My chest feels tight…", "Heart's racing!", "Can't catch my breath!"],
+  BACK:    ["My back is killing me!", "Spine feels locked up…", "Need a good crack!"],
+  LEG:     ["My leg is so stiff!", "Can't walk properly…", "Leg won't cooperate!"],
+  STOMACH: ["My stomach is growling!", "Tummy feels bubbly…", "Belly ache again…"],
+  EYE:     ["I can't see clearly…", "Everything looks fuzzy!", "My eyes are so blurry…"],
+};
 
 const SIT_IMAGES: Record<string, any> = {
   GOLEM: require("../assets/images/sit_golem.png"),
@@ -54,9 +66,11 @@ interface PatientSpriteProps {
   position: { cx: number; cy: number };
   delay: number;
   onPress: () => void;
+  bubbleText?: string | null;
+  bubbleOpacity?: Animated.Value;
 }
 
-function PatientSprite({ patient, position, delay, onPress }: PatientSpriteProps) {
+function PatientSprite({ patient, position, delay, onPress, bubbleText, bubbleOpacity }: PatientSpriteProps) {
   const floatAnim = useRef(new Animated.Value(0)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -132,7 +146,21 @@ function PatientSprite({ patient, position, delay, onPress }: PatientSpriteProps
           style={[styles.spriteImage, { width: SPRITE_SIZE, height: SPRITE_SIZE }]}
           resizeMode="contain"
         />
+        {/* Level badge */}
+        <View style={[styles.levelBadge, { backgroundColor: patient.glowColor }]}>
+          <Text style={styles.levelBadgeText}>Lv.{patient.level}</Text>
+        </View>
       </TouchableOpacity>
+
+      {/* Thought bubble */}
+      {bubbleText && bubbleOpacity && (
+        <Animated.View style={[styles.thoughtBubble, { opacity: bubbleOpacity }]}>
+          <Text style={styles.thoughtText}>{bubbleText}</Text>
+          {/* Small circle "tail" dots */}
+          <View style={styles.bubbleDot1} />
+          <View style={styles.bubbleDot2} />
+        </Animated.View>
+      )}
     </Animated.View>
   );
 }
@@ -302,8 +330,63 @@ export default function LobbyScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { coins, reputation, tutorialComplete, doctorName, completeTutorial, resetTutorial, unlockedSeats, unlockSeat } = useGame();
   const { playTap } = useCrackSound();
-  const [patients] = useState<PatientConfig[]>(() => getRandomPatients(4));
+  const rankIdx = Math.min(5, Math.floor(reputation / 1000));
+  const [patients] = useState<PatientConfig[]>(() => getRandomPatients(4, rankIdx));
   const titleAnim = useRef(new Animated.Value(0)).current;
+
+  /* ---- Thought bubble cycling ---- */
+  const [bubbleIdx, setBubbleIdx] = useState<number | null>(null);
+  const [bubbleText, setBubbleText] = useState<string>("");
+  const bubbleOpacity = useRef(new Animated.Value(0)).current;
+  const bubbleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const pickBubblePhrase = useCallback((patient: PatientConfig): string => {
+    const ailType = patient.ailments[0]?.type ?? "HEAD";
+    const pool = THOUGHT_PHRASES[ailType] ?? THOUGHT_PHRASES.HEAD;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }, []);
+
+  // Cycle thought bubbles: show on random patient, fade in → hold 3s → fade out → wait 2-4s → repeat
+  useEffect(() => {
+    let cancelled = false;
+
+    const showNext = () => {
+      if (cancelled) return;
+      // Pick a random unlocked seat index
+      const available = unlockedSeats.filter((i: number) => i < patients.length);
+      if (available.length === 0) return;
+      const idx = available[Math.floor(Math.random() * available.length)];
+      const phrase = pickBubblePhrase(patients[idx]);
+
+      setBubbleIdx(idx);
+      setBubbleText(phrase);
+
+      // Fade in
+      Animated.timing(bubbleOpacity, { toValue: 1, duration: 400, useNativeDriver: true }).start(() => {
+        if (cancelled) return;
+        // Hold for 3 seconds, then fade out
+        bubbleTimer.current = setTimeout(() => {
+          if (cancelled) return;
+          Animated.timing(bubbleOpacity, { toValue: 0, duration: 500, useNativeDriver: true }).start(() => {
+            if (cancelled) return;
+            setBubbleIdx(null);
+            // Wait 2–4s before next bubble
+            const delay = 2000 + Math.random() * 2000;
+            bubbleTimer.current = setTimeout(showNext, delay);
+          });
+        }, 3000);
+      });
+    };
+
+    // Start first bubble after an initial 1.5s delay
+    bubbleTimer.current = setTimeout(showNext, 1500);
+
+    return () => {
+      cancelled = true;
+      if (bubbleTimer.current) clearTimeout(bubbleTimer.current);
+      bubbleOpacity.setValue(0);
+    };
+  }, [unlockedSeats, patients]);
 
   // Seat popup state
   const [seatPopup, setSeatPopup] = useState<{
@@ -370,16 +453,19 @@ export default function LobbyScreen() {
 
   const handlePatientPress = useCallback((patient: PatientConfig, index: number) => {
     playTap();
+    // Serialize patient data (excluding non-serializable image)
+    const { image, ...serializable } = patient;
+    const patientData = JSON.stringify(serializable);
     if (tutStep === "LOBBY_TAP") {
       // Only allow tapping the 2nd patient (index 1) during tutorial
       if (index !== 1) return;
       setTutStep("HIDDEN");
-      navigation.navigate("Treatment", { patientType: patient.type, tutorial: true } as any);
+      navigation.navigate("Treatment", { patientType: patient.type, tutorial: true, patientData } as any);
     } else if (tutStep !== "HIDDEN" && tutStep !== "INTRO" && tutStep !== "NAME_INPUT" && tutStep !== "CLINIC_INTRO" && tutStep !== "COMPLETE") {
       // Block taps during other tutorial steps
       return;
     } else if (tutStep === "HIDDEN") {
-      navigation.navigate("Treatment", { patientType: patient.type });
+      navigation.navigate("Treatment", { patientType: patient.type, patientData });
     }
   }, [tutStep, navigation]);
 
@@ -509,6 +595,8 @@ export default function LobbyScreen() {
               position={pos}
               delay={i * 120}
               onPress={() => handlePatientPress(patients[i], i)}
+              bubbleText={bubbleIdx === i ? bubbleText : null}
+              bubbleOpacity={bubbleIdx === i ? bubbleOpacity : undefined}
             />
           );
         }
@@ -698,12 +786,83 @@ const styles = StyleSheet.create({
   spriteImage: {
     zIndex: 2,
   },
+  levelBadge: {
+    position: "absolute",
+    bottom: -4,
+    alignSelf: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.8)",
+    zIndex: 3,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+  },
+  levelBadgeText: {
+    fontSize: 10,
+    fontWeight: "800" as const,
+    color: "#FFF",
+    textShadowColor: "rgba(0,0,0,0.4)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
   placeholderIcon: {
     width: SPRITE_SIZE,
     height: SPRITE_SIZE,
     alignItems: "center" as const,
     justifyContent: "center" as const,
     zIndex: 2,
+  },
+  thoughtBubble: {
+    position: "absolute" as const,
+    top: -38,
+    alignSelf: "center",
+    backgroundColor: "#FFF",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    maxWidth: SPRITE_SIZE * 1.6,
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    zIndex: 20,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  thoughtText: {
+    fontSize: 10,
+    fontWeight: "700" as const,
+    color: "#3D2C1E",
+    textAlign: "center" as const,
+    lineHeight: 13,
+  },
+  bubbleDot1: {
+    position: "absolute" as const,
+    bottom: -6,
+    left: "45%" as any,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#FFF",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  bubbleDot2: {
+    position: "absolute" as const,
+    bottom: -12,
+    left: "50%" as any,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: "#FFF",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
   },
 });
 

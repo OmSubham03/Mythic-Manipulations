@@ -15,7 +15,7 @@ export type RootStackParamList = {
   Loading: undefined;
   Start: { fromLobby?: boolean } | undefined;
   Lobby: undefined;
-  Treatment: { patientType: string; tutorial?: boolean };
+  Treatment: { patientType: string; tutorial?: boolean; patientData?: string };
   Upgrades: undefined;
   Profile: undefined;
   MonsterCollection: undefined;

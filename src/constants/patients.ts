@@ -9,9 +9,31 @@ export type PatientType =
   | "LAVA_BLOB"
   | "MOON_BUNNY";
 
-export type AilmentType = "NECK" | "BACK" | "KNEE" | "HAND";
+export type AilmentType = "TEETH" | "HEAD" | "NECK" | "CHEST" | "BACK" | "LEG" | "STOMACH" | "EYE";
 export type GestureType = "DRAG_UP" | "DRAG_DOWN" | "DRAG_HORIZONTAL" | "TAP_RAPID";
-export type MiniGameType = "BONE_CRACK" | "JOINT_POP" | "MUSCLE_KNOT" | "NERVE_PINCH" | "SWELLING" | "FIND_PATH";
+export type MiniGameType = "DENTAL_CHECK" | "XRAY_SCAN" | "HEART_PUMP" | "NERVE_LINK" | "SWELLING" | "FIND_PATH" | "EYE_TEST";
+
+const ALL_MINI_GAMES: MiniGameType[] = [
+  "DENTAL_CHECK", "XRAY_SCAN", "HEART_PUMP", "NERVE_LINK", "SWELLING", "FIND_PATH", "EYE_TEST",
+];
+
+/** Fixed mapping: each ailment type → allowed mini-games */
+const AILMENT_GAME_MAP: Record<AilmentType, MiniGameType[]> = {
+  TEETH:   ["DENTAL_CHECK"],
+  HEAD:    ["NERVE_LINK", "XRAY_SCAN"],
+  NECK:    ["NERVE_LINK", "XRAY_SCAN"],
+  CHEST:   ["HEART_PUMP"],
+  BACK:    ["XRAY_SCAN", "SWELLING"],
+  LEG:     ["XRAY_SCAN"],
+  STOMACH: ["FIND_PATH"],
+  EYE:     ["EYE_TEST"],
+};
+
+/** Pick a random valid mini-game for a given ailment type */
+function gameForAilment(type: AilmentType): MiniGameType {
+  const pool = AILMENT_GAME_MAP[type];
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 export interface Ailment {
   id: string;
@@ -41,6 +63,8 @@ export interface PatientConfig {
   ailments: Ailment[];
   description: string;
   entrySound: string;
+  /** Patient difficulty level (1-5). Set dynamically by getRandomPatients. */
+  level: number;
 }
 
 const PATIENTS: PatientConfig[] = [
@@ -58,14 +82,15 @@ const PATIENTS: PatientConfig[] = [
     baseReward: 80,
     description: "A chubby rock golem with petrified posture issues.",
     entrySound: "thud",
+    level: 1,
     ailments: [
       {
         id: "golem_neck",
         type: "NECK",
         label: "Stone Neck Crick",
-        description: "Tap when the ring hits the circle!",
+        description: "Reconnect the pinched nerves!",
         gesture: "DRAG_DOWN",
-        miniGame: "BONE_CRACK",
+        miniGame: "NERVE_LINK",
         dragThreshold: 120,
         bodyZone: { x: 0.5, y: 0.22, size: 55 },
         crunchLabel: "CRUNCH!",
@@ -74,9 +99,9 @@ const PATIENTS: PatientConfig[] = [
         id: "golem_back",
         type: "BACK",
         label: "Granite Spine Lock",
-        description: "Find the path through the blockage!",
+        description: "X-ray the spine!",
         gesture: "DRAG_UP",
-        miniGame: "FIND_PATH",
+        miniGame: "XRAY_SCAN",
         dragThreshold: 100,
         bodyZone: { x: 0.5, y: 0.55, size: 60 },
         crunchLabel: "CRACK!",
@@ -97,26 +122,27 @@ const PATIENTS: PatientConfig[] = [
     baseReward: 100,
     description: "A feathery little harpy with delicate wing joints.",
     entrySound: "flutter",
+    level: 1,
     ailments: [
       {
-        id: "harpy_wing",
-        type: "HAND",
-        label: "Ruffled Wing Feathers",
-        description: "Tap fast to smooth them out!",
+        id: "harpy_chest",
+        type: "CHEST",
+        label: "Fluttering Heartbeat",
+        description: "Pump to steady the heart!",
         gesture: "TAP_RAPID",
-        miniGame: "MUSCLE_KNOT",
+        miniGame: "HEART_PUMP",
         dragThreshold: 80,
         tapCount: 5,
-        bodyZone: { x: 0.25, y: 0.4, size: 50 },
-        crunchLabel: "SNAP!",
+        bodyZone: { x: 0.5, y: 0.38, size: 50 },
+        crunchLabel: "THUMP!",
       },
       {
         id: "harpy_neck",
         type: "NECK",
         label: "Tweaked Birdie Neck",
-        description: "Tap when the ring hits the circle!",
+        description: "X-ray the neck bones!",
         gesture: "DRAG_HORIZONTAL",
-        miniGame: "BONE_CRACK",
+        miniGame: "XRAY_SCAN",
         dragThreshold: 80,
         bodyZone: { x: 0.5, y: 0.2, size: 48 },
         crunchLabel: "POP!",
@@ -137,14 +163,15 @@ const PATIENTS: PatientConfig[] = [
     baseReward: 120,
     description: "An energetic ember kitten with a fiery posture.",
     entrySound: "sizzle",
+    level: 1,
     ailments: [
       {
-        id: "kitten_knee",
-        type: "KNEE",
-        label: "Scorched Knee Lock",
-        description: "Draw circles to massage!",
+        id: "kitten_leg",
+        type: "LEG",
+        label: "Scorched Leg Lock",
+        description: "X-ray the leg bones!",
         gesture: "DRAG_DOWN",
-        miniGame: "SWELLING",
+        miniGame: "XRAY_SCAN",
         dragThreshold: 100,
         bodyZone: { x: 0.35, y: 0.72, size: 48 },
         crunchLabel: "POP!",
@@ -153,9 +180,9 @@ const PATIENTS: PatientConfig[] = [
         id: "kitten_back",
         type: "BACK",
         label: "Fiery Spine Twist",
-        description: "Trace the nerve path!",
+        description: "Press the swelling down!",
         gesture: "DRAG_UP",
-        miniGame: "NERVE_PINCH",
+        miniGame: "SWELLING",
         dragThreshold: 110,
         bodyZone: { x: 0.5, y: 0.5, size: 55 },
         crunchLabel: "CRACK!",
@@ -176,26 +203,27 @@ const PATIENTS: PatientConfig[] = [
     baseReward: 90,
     description: "A big fluffy snowball yeti with frozen joints.",
     entrySound: "ice",
+    level: 1,
     ailments: [
       {
-        id: "yeti_hand",
-        type: "HAND",
-        label: "Frozen Finger Joints",
-        description: "Drag the bone into position!",
+        id: "yeti_teeth",
+        type: "TEETH",
+        label: "Frozen Fang Ache",
+        description: "Check the frozen teeth!",
         gesture: "TAP_RAPID",
-        miniGame: "JOINT_POP",
+        miniGame: "DENTAL_CHECK",
         dragThreshold: 70,
         tapCount: 7,
-        bodyZone: { x: 0.72, y: 0.45, size: 50 },
+        bodyZone: { x: 0.5, y: 0.18, size: 50 },
         crunchLabel: "SHATTER!",
       },
       {
         id: "yeti_neck",
         type: "NECK",
         label: "Icy Neck Freeze",
-        description: "Tap when the ring hits the circle!",
+        description: "Reconnect the neck nerves!",
         gesture: "DRAG_UP",
-        miniGame: "BONE_CRACK",
+        miniGame: "NERVE_LINK",
         dragThreshold: 90,
         bodyZone: { x: 0.5, y: 0.22, size: 52 },
         crunchLabel: "CRACK!",
@@ -216,11 +244,12 @@ const PATIENTS: PatientConfig[] = [
     baseReward: 95,
     description: "A tiny mushroom sprite with a stiff little stem.",
     entrySound: "poof",
+    level: 1,
     ailments: [
       {
-        id: "mushroom_back",
-        type: "BACK",
-        label: "Compressed Stem",
+        id: "mushroom_stomach",
+        type: "STOMACH",
+        label: "Spore Belly Bloat",
         description: "Find the path to release!",
         gesture: "DRAG_UP",
         miniGame: "FIND_PATH",
@@ -229,12 +258,12 @@ const PATIENTS: PatientConfig[] = [
         crunchLabel: "POOF!",
       },
       {
-        id: "mushroom_knee",
-        type: "KNEE",
+        id: "mushroom_leg",
+        type: "LEG",
         label: "Rooted Foot",
-        description: "Draw circles to massage!",
+        description: "X-ray the leg!",
         gesture: "DRAG_DOWN",
-        miniGame: "SWELLING",
+        miniGame: "XRAY_SCAN",
         dragThreshold: 90,
         bodyZone: { x: 0.38, y: 0.8, size: 45 },
         crunchLabel: "SNAP!",
@@ -255,25 +284,26 @@ const PATIENTS: PatientConfig[] = [
     baseReward: 110,
     description: "A sparky little dragon with neck kinks from flying.",
     entrySound: "zap",
+    level: 1,
     ailments: [
       {
-        id: "dragon_neck",
-        type: "NECK",
-        label: "Cricked Dragon Neck",
-        description: "Trace the nerve path!",
+        id: "dragon_head",
+        type: "HEAD",
+        label: "Zapped Dragon Skull",
+        description: "Reconnect the head nerves!",
         gesture: "DRAG_DOWN",
-        miniGame: "NERVE_PINCH",
+        miniGame: "NERVE_LINK",
         dragThreshold: 100,
-        bodyZone: { x: 0.5, y: 0.28, size: 50 },
+        bodyZone: { x: 0.5, y: 0.15, size: 50 },
         crunchLabel: "ZAP!",
       },
       {
         id: "dragon_back",
         type: "BACK",
         label: "Wing Root Tension",
-        description: "Tap when the ring hits the circle!",
+        description: "X-ray the spine!",
         gesture: "DRAG_UP",
-        miniGame: "BONE_CRACK",
+        miniGame: "XRAY_SCAN",
         dragThreshold: 105,
         bodyZone: { x: 0.5, y: 0.55, size: 60 },
         crunchLabel: "CRACK!",
@@ -294,25 +324,26 @@ const PATIENTS: PatientConfig[] = [
     baseReward: 95,
     description: "An elegant crystal deer with frozen neck joints.",
     entrySound: "chime",
+    level: 1,
     ailments: [
       {
-        id: "deer_neck",
-        type: "NECK",
-        label: "Crystallized Neck",
-        description: "Drag the crystal into position!",
+        id: "deer_head",
+        type: "HEAD",
+        label: "Crystallized Antlers",
+        description: "X-ray the skull!",
         gesture: "DRAG_HORIZONTAL",
-        miniGame: "JOINT_POP",
+        miniGame: "XRAY_SCAN",
         dragThreshold: 80,
-        bodyZone: { x: 0.5, y: 0.22, size: 48 },
+        bodyZone: { x: 0.5, y: 0.15, size: 48 },
         crunchLabel: "TINK!",
       },
       {
-        id: "deer_knee",
-        type: "KNEE",
+        id: "deer_leg",
+        type: "LEG",
         label: "Locked Hoof",
-        description: "Tap when the ring hits the circle!",
+        description: "X-ray the hoof bones!",
         gesture: "DRAG_DOWN",
-        miniGame: "BONE_CRACK",
+        miniGame: "XRAY_SCAN",
         dragThreshold: 95,
         bodyZone: { x: 0.38, y: 0.72, size: 48 },
         crunchLabel: "CRACK!",
@@ -333,28 +364,29 @@ const PATIENTS: PatientConfig[] = [
     baseReward: 115,
     description: "A molten lava blob with pressurized joints.",
     entrySound: "rumble",
+    level: 1,
     ailments: [
       {
-        id: "lava_hand",
-        type: "HAND",
-        label: "Lava Bubble Joints",
-        description: "Tap fast to pop the bubbles!",
+        id: "lava_chest",
+        type: "CHEST",
+        label: "Lava Core Overload",
+        description: "Pump the lava core!",
         gesture: "TAP_RAPID",
-        miniGame: "MUSCLE_KNOT",
+        miniGame: "HEART_PUMP",
         dragThreshold: 70,
         tapCount: 6,
-        bodyZone: { x: 0.75, y: 0.48, size: 50 },
+        bodyZone: { x: 0.5, y: 0.38, size: 55 },
         crunchLabel: "BLORP!",
       },
       {
-        id: "lava_back",
-        type: "BACK",
-        label: "Core Pressure Lock",
+        id: "lava_stomach",
+        type: "STOMACH",
+        label: "Magma Gut Pressure",
         description: "Find the path to release pressure!",
         gesture: "DRAG_UP",
         miniGame: "FIND_PATH",
         dragThreshold: 110,
-        bodyZone: { x: 0.5, y: 0.5, size: 65 },
+        bodyZone: { x: 0.5, y: 0.58, size: 65 },
         crunchLabel: "BOOM!",
       },
     ],
@@ -373,25 +405,26 @@ const PATIENTS: PatientConfig[] = [
     baseReward: 88,
     description: "A fluffy moon bunny with droopy ear tendons.",
     entrySound: "boing",
+    level: 1,
     ailments: [
       {
-        id: "bunny_neck",
-        type: "NECK",
-        label: "Droopy Ear Tendons",
-        description: "Trace the nerve path!",
+        id: "bunny_eye",
+        type: "EYE",
+        label: "Moonblind Haze",
+        description: "Focus the blurry vision!",
         gesture: "DRAG_DOWN",
-        miniGame: "NERVE_PINCH",
+        miniGame: "EYE_TEST",
         dragThreshold: 100,
-        bodyZone: { x: 0.5, y: 0.15, size: 55 },
-        crunchLabel: "PLOP!",
+        bodyZone: { x: 0.5, y: 0.12, size: 55 },
+        crunchLabel: "BLINK!",
       },
       {
-        id: "bunny_knee",
-        type: "KNEE",
-        label: "Hop Joint Stiffness",
-        description: "Drag the bone into position!",
+        id: "bunny_leg",
+        type: "LEG",
+        label: "Hop Leg Stiffness",
+        description: "X-ray the leg bones!",
         gesture: "DRAG_DOWN",
-        miniGame: "JOINT_POP",
+        miniGame: "XRAY_SCAN",
         dragThreshold: 95,
         bodyZone: { x: 0.62, y: 0.72, size: 48 },
         crunchLabel: "BOING!",
@@ -402,7 +435,80 @@ const PATIENTS: PatientConfig[] = [
 
 export default PATIENTS;
 
-export function getRandomPatients(count: number): PatientConfig[] {
+// Extra ailment templates for generating additional ailments at higher levels
+const EXTRA_AILMENT_POOL: Omit<Ailment, "id" | "miniGame">[] = [
+  { type: "TEETH", label: "Cracked Fang", description: "Check the cracked tooth!", gesture: "TAP_RAPID", dragThreshold: 90, bodyZone: { x: 0.5, y: 0.18, size: 50 }, crunchLabel: "CRUNCH!" },
+  { type: "HEAD", label: "Dizzy Skull", description: "Reconnect head nerves!", gesture: "TAP_RAPID", dragThreshold: 90, bodyZone: { x: 0.5, y: 0.12, size: 50 }, crunchLabel: "BONK!" },
+  { type: "NECK", label: "Stiff Neck", description: "X-ray the neck!", gesture: "DRAG_DOWN", dragThreshold: 100, bodyZone: { x: 0.5, y: 0.25, size: 48 }, crunchLabel: "CRACK!" },
+  { type: "CHEST", label: "Weak Heartbeat", description: "Pump the heart!", gesture: "TAP_RAPID", dragThreshold: 85, tapCount: 6, bodyZone: { x: 0.5, y: 0.38, size: 52 }, crunchLabel: "THUMP!" },
+  { type: "BACK", label: "Sore Spine", description: "X-ray the spine!", gesture: "DRAG_UP", dragThreshold: 110, bodyZone: { x: 0.5, y: 0.52, size: 55 }, crunchLabel: "POP!" },
+  { type: "LEG", label: "Wobbly Leg", description: "X-ray the leg!", gesture: "DRAG_DOWN", dragThreshold: 100, bodyZone: { x: 0.4, y: 0.78, size: 45 }, crunchLabel: "SNAP!" },
+  { type: "STOMACH", label: "Tummy Trouble", description: "Find the path to relief!", gesture: "DRAG_HORIZONTAL", dragThreshold: 95, bodyZone: { x: 0.5, y: 0.6, size: 50 }, crunchLabel: "GURGLE!" },
+  { type: "EYE", label: "Blurry Vision", description: "Focus the blurry eye!", gesture: "TAP_RAPID", dragThreshold: 85, tapCount: 5, bodyZone: { x: 0.5, y: 0.14, size: 40 }, crunchLabel: "BLINK!" },
+];
+
+/**
+ * Rank index → max patient level unlocked:
+ *   0 (Newbie)     → L1 only
+ *   1 (Intern)     → L1-L2
+ *   2 (Junior)     → L1-L3
+ *   3 (Specialist) → L1-L4
+ *   4+ (Master/Legend) → L1-L5
+ */
+function maxLevelForRank(rankIndex: number): number {
+  return Math.min(5, rankIndex + 1);
+}
+
+/** Number of ailments for a given patient level */
+function ailmentCountForLevel(level: number): number {
+  if (level <= 1) return 1;
+  if (level <= 3) return level; // L2→2, L3→3
+  return 4; // L4 and L5 both get 4 ailments
+}
+
+export function getRandomPatients(count: number, rankIndex: number = 0): PatientConfig[] {
+  const maxLevel = maxLevelForRank(rankIndex);
   const shuffled = [...PATIENTS].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
+
+  return shuffled.slice(0, count).map((patient) => {
+    // Pick a random level from 1..maxLevel
+    const level = Math.floor(Math.random() * maxLevel) + 1;
+    const ailmentCount = ailmentCountForLevel(level);
+
+    // Start with the patient's base ailments (up to ailmentCount)
+    // Assign mini-game based on ailment type mapping
+    const baseAilments = patient.ailments.slice(0, ailmentCount).map((ail) => ({
+      ...ail,
+      miniGame: gameForAilment(ail.type),
+    }));
+
+    // If we need more ailments than the base provides, generate extras
+    if (baseAilments.length < ailmentCount) {
+      const usedTypes = new Set(baseAilments.map(a => a.type));
+      const extraPool = EXTRA_AILMENT_POOL
+        .filter(a => !usedTypes.has(a.type))
+        .sort(() => Math.random() - 0.5);
+
+      for (let i = baseAilments.length; i < ailmentCount && extraPool.length > 0; i++) {
+        const template = extraPool.shift()!;
+        usedTypes.add(template.type);
+        baseAilments.push({
+          ...template,
+          id: `${patient.type.toLowerCase()}_extra_${i}`,
+          miniGame: gameForAilment(template.type),
+        });
+      }
+    }
+
+    // Scale rewards with level
+    const rewardMult = 1 + (level - 1) * 0.25;
+
+    return {
+      ...patient,
+      level,
+      ailments: baseAilments,
+      baseReward: Math.round(patient.baseReward * rewardMult),
+      patienceDuration: Math.round(patient.patienceDuration * (1 + (level - 1) * 0.3)),
+    };
+  });
 }
